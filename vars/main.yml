@@ -14,13 +14,10 @@ traefik_version: '2.11'
 
 portainer_app_name: 'portainer'                 # Service name for Portainer (portainer.dckr.example.com)
 
-
 appcacher_app_name: apt-cacher-ng
-
 
 gitea_app_name: 'gitea'
 gitea_release: 'latest'
-
 
 pihole_release: 'latest'
 pihole_app_name: pihole
