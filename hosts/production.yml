@@ -1,0 +1,16 @@
+---
+all:
+  children:
+    rk1_cluster:
+      children:
+        rk1_main:
+          hosts:
+            rk1-cluster01.mcharryville.space:
+        rk1_secondary:
+          hosts:
+            rk1-cluster02.mcharryville.space:
+            rk1-cluster03.mcharryville.space:
+            rk1-cluster04.mcharryville.space:
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+    docker_network: the_ways

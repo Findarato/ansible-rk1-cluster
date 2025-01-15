@@ -1,0 +1,4 @@
+- name: reboot systemd
+  ansible.builtin.reboot:
+    msg: Rebooting from Ansible
+    connect_timeout: 120

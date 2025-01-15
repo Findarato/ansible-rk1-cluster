@@ -1,0 +1,6 @@
+---
+# defaults file for roles/gluster-docker
+gluster_docker:
+  path: "/docker/"
+  owner: "1000"
+  group: docker

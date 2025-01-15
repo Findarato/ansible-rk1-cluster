@@ -1,0 +1,4 @@
+---
+
+cluster_role: secondary
+docker_gluster_interface: eth0

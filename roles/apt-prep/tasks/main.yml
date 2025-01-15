@@ -1,0 +1,30 @@
+---
+# tasks file for roles/apt-prep
+
+# - name: Ensure apt cache is setup
+#   ansible.builtin.copy:
+#     src: 00aptproxy
+#     dest: /etc/apt/apt.conf.d/00aptproxy
+
+- name: Ensure apt cache is setup
+  ansible.builtin.template:
+    src: 00aptproxy.j2
+    dest: /etc/apt/apt.conf.d/00aptproxy
+
+- name: Update system
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Update all packages to their latest version
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+
+- name: Remove useless packages from the cache
+  ansible.builtin.apt:
+    autoclean: yes
+
+- name: Remove dependencies that are no longer required and purge their configuration files
+  ansible.builtin.apt:
+    autoremove: yes
+    purge: true

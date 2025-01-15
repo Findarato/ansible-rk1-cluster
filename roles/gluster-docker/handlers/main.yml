@@ -1,0 +1,7 @@
+---
+# handlers file for roles/gluster-docker
+
+- name: restart_keepalived
+  service:
+    name: keepalived
+    state: restarted

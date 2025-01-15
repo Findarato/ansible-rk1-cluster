@@ -1,0 +1,36 @@
+---
+- hosts: all
+  gather_facts: yes
+  user: ubuntu
+  become: true
+  tasks:
+    - name: fix systemd resolved
+      ansible.builtin.copy:
+        src: resolved.conf
+        dest: /etc/systemd/resolved.conf
+      notify: reboot systemd
+    - name: Create symlink for systemd resolved
+      ansible.builtin.file:
+        src: /run/systemd/resolve/resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+
+
+  roles:
+    # - role: apt-prep
+    #   vars:
+    #     apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
+    #   tags: apt, ubuntu
+    # - role: geerlingguy.docker
+    #   vars:
+    #     docker_users:
+    #     - ubuntu
+    #   tags: docker
+    # - role: geerlingguy.pip
+    #   tags: python, pip
+    - role: gluster-docker
+      tags: gluster, docker
+    - role: keepalive
+      tags: keepalive
+      vars:
+        keepapive_vip: 10.1.1.35

@@ -1,0 +1,31 @@
+api:
+  dashboard: true
+  debug: true
+
+entryPoints:
+  http:
+    address: ":80"
+  https:
+    address: ":443"
+  dns-tcp:
+    address: ":53"
+  dns-udp:
+    address: ":53"
+
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile = "/certs/traefik.crt"
+        keyFile = "/certs/traefik.key"
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: myemailaddress@gmail.com
+      storage: acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"

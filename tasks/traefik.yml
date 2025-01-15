@@ -1,0 +1,100 @@
+---
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'traefik_backend'
+    driver: 'overlay'
+    internal: false
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: 'ubuntu'
+    group: 'ubuntu'
+    mode: '0750'
+    state: 'directory'
+  loop:
+    - 'traefik_data'
+  loop_control:
+    loop_var: 'dir'
+
+- name: 'Ensure SSL certifcate'
+  when: traefik_selfsign
+  block:
+    - name: 'Generate SSL key'
+      community.crypto.openssl_privatekey:
+        path: "{{ docker_data_dir }}/traefik_data/traefik.key"
+
+    - name: 'Generate SSL certificate request'
+      community.crypto.openssl_csr:
+        path: "{{ docker_data_dir }}/traefik_data/traefik.csr"
+        privatekey_path: "{{ docker_data_dir }}/traefik_data/traefik.key"
+        common_name: "*.{{ traefik_domain }}"
+
+    - name: 'Self-sign SSL certificate'
+      community.crypto.x509_certificate:
+        path: "{{ docker_data_dir }}/traefik_data/traefik.crt"
+        privatekey_path: "{{ docker_data_dir }}/traefik_data/traefik.key"
+        csr_path: "{{ docker_data_dir }}/traefik_data/traefik.csr"
+        provider: selfsigned
+
+- name: 'Deploy Traefik TOML config'
+  ansible.builtin.copy:
+    src: 'traefik.toml'
+    dest: "{{ docker_data_dir }}/traefik_data/traefik.toml"
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
+- name: 'Deploy Traefik'
+  community.docker.docker_swarm_service:
+    name: 'traefik'
+    image: 'traefik:{{ traefik_version }}'
+    command:
+      - '/usr/local/bin/traefik'
+      - '--providers.docker'
+      - '--providers.docker.swarmMode'
+      - '--providers.docker.watch'
+      - '--providers.docker.network=traefik_backend'
+      - '--providers.file.filename=/certs/traefik.toml'
+      - '--entrypoints.web.address=:80'
+      - '--entrypoints.websecure.address=:443'
+      - '--entrypoints.dns-tcp.address=:53'
+      - '--entrypoints.dns-udp.address=:53/udp'
+      # - "--entryPoints.web.forwardedHeaders.trustedIPs={{ traefik_upstream_proxy }}"
+      # - "--entryPoints.websecure.forwardedHeaders.trustedIPs={{ traefik_upstream_proxy }}"
+      - '--api.insecure'
+      - '--accesslog=true'
+    mounts:
+      - source: '/var/run/docker.sock'
+        target: '/var/run/docker.sock'
+        type: 'bind'
+      - source: '{{ docker_data_dir }}/traefik_data'
+        target: '/certs'
+        type: 'bind'
+    networks:
+      - 'traefik_backend'
+    mode: 'global'
+    restart_config:
+      condition: "{{ restart_condition }}"
+    publish:
+      - published_port: 80
+        target_port: 80
+        mode: 'host'
+      - published_port: 443
+        target_port: 443
+        mode: 'host'
+      - published_port: 8080
+        target_port: 8080
+        mode: 'host'
+      - published_port: 53
+        target_port: 53
+        protocol: udp
+        mode: 'host'
+      - published_port: 53
+        target_port: 53
+        protocol: tcp
+        mode: 'host'
+    placement:
+      constraints:
+        - 'node.role == manager'
+    user: null

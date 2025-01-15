@@ -1,0 +1,26 @@
+docker_service_debug: true                     # Enable to see sensitive output when deploying services
+
+docker_edition: 'ce'
+
+docker_data_dir: '/docker/volumes'         # Where to store the volumes on the docker hosts
+docker_worker_group: 'docker_workers'           # Groups that contain this Swarm's workers
+
+restart_condition: 'any'
+
+traefik_domain: 'rk1.mcharryville.space'              # Subdomain to put all services under
+traefik_selfsign: true                          # Selfsign the used SSL certificate
+# traefik_upstream_proxy: '10.0.0.80'             # Upstream proxy to this traefik
+traefik_version: '2.11'
+
+portainer_app_name: 'portainer'                 # Service name for Portainer (portainer.dckr.example.com)
+
+
+appcacher_app_name: apt-cacher-ng
+
+
+gitea_app_name: 'gitea'
+gitea_release: 'latest'
+
+
+pihole_release: 'latest'
+pihole_app_name: pihole

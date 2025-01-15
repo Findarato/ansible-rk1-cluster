@@ -1,0 +1,42 @@
+---
+# tasks file for roles/gluster-docker
+
+# - name: Install Python tools for docker
+#   pip:
+#     name: docker
+#     state: latest
+
+# - name: Create paths for Docker-gluster
+#   ansible.builtin.file:
+#     path: "{{ gluster_docker.path }}"
+#     state: directory
+#     owner: "{{ gluster_docker.owner }}"
+#     group: "{{ gluster_docker.group }}"
+
+- name: Swarm - Init system
+  community.docker.docker_swarm:
+    state: present
+    advertise_addr: 10.1.1.31
+  register: swarm_info
+  when:
+    - cluster_role == "main"
+
+- name: register key
+  set_fact:
+    swarm: "{{ swarm_info }}"
+  when:
+    - cluster_role == "main"
+
+- name: Swarm - add nodes
+  community.docker.docker_swarm:
+    state: join
+    remote_addrs: 10.1.1.31
+    join_token: "{{ hostvars['rk1-cluster01.mcharryville.space'].swarm.swarm_facts['JoinTokens']['Worker'] }}"
+  when:
+    - cluster_role == "secondary"
+
+# - name: Grow the Ways
+#   community.docker.docker_network:
+#     name: "{{ docker_network }}"
+#     driver: overlay
+

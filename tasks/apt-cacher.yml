@@ -1,0 +1,37 @@
+---
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'apt_cacher_network'
+    driver: 'overlay'
+
+- name: Create NFS mount
+  community.docker.docker_volume:
+    name: nfs-apt-cacher-ng
+    state: present
+    driver: local
+    recreate: options-changed
+    driver_options:
+      type: nfs
+      o: "addr=10.1.1.5,rw"
+      device: :/volume3/m2.docker/nfs/aptcacherng
+
+- name: 'Deploy apt-cacher-ng'
+  community.docker.docker_swarm_service:
+    name: 'apt-cacher-ng'
+    image: 'sameersbn/apt-cacher-ng'
+    # state: absent
+    mounts:
+      - source: "nfs-apt-cacher-ng"
+        target: '/var/cache/apt-cacher-ng'
+        type: volume
+    networks:
+      - 'apt_cacher_network'
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    publish:
+      - mode: host
+        published_port: 3142
+        target_port: 3142
+    user: null

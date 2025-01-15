@@ -1,0 +1,65 @@
+---
+- hosts: rk1_main
+  gather_facts: no
+  user: ubuntu
+  become: true
+  vars_files:
+    - main.yml
+  tasks:
+    # - name: Install virtualenv
+    #   ansible.builtin.package:
+    #     name: python3-virtualenv
+    #     state: latest
+
+    # - name: testing
+    #   debug:
+    #     msg: '{{ ansible_env.HOME }}/ansible_env/'
+
+    # - name: Install Misc Python packages
+    #   ansible.builtin.pip:
+    #     name:  "{{ pipy }}"
+    #     state: latest
+    #     virtualenv: '{{ ansible_env.HOME }}/ansible_env/'
+    #     virtualenv_site_packages: yes
+    #   loop:
+    #     - docker
+    #     - jsonpatch
+    #     - pyOpenSSL
+    #   loop_control:
+    #     loop_var: 'pipy'
+
+    # - name: Install Misc Python packages
+    #   ansible.builtin.pip:
+    #     name:  "{{ pipy }}"
+    #     state: latest
+    #   loop:
+    #     - docker
+    #     - jsonpatch
+    #     - pyOpenSSL
+    #   loop_control:
+    #     loop_var: 'pipy'
+
+    # - name: Setup Traffic
+    #   ansible.builtin.include_tasks: tasks/traefik.yml
+    # - name: Setup portainer
+    #   ansible.builtin.include_tasks: tasks/portainer.yml
+    # - name: Setup gittea
+    #   ansible.builtin.include_tasks: tasks/gittea.yml
+    # - name: Setup apt-cacher
+    #   ansible.builtin.include_tasks: tasks/apt-cacher.yml
+    - name: Setup pihole
+      ansible.builtin.include_tasks: tasks/pihole.yml
+  # roles:
+  #   - role: apt-prep
+  #     vars:
+  #       apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
+  #     tags: apt, ubuntu
+  #   - role: gluster-docker
+  #     tags: gluster, docker
+    # - role: geerlingguy.docker
+    #   vars:
+    #     docker_users:
+    #     - ubuntu
+    #   tags: docker
+    # - role: geerlingguy.pip
+    #   tags: python, pip

@@ -1,0 +1,73 @@
+---
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'pihole_backend'
+    driver: 'overlay'
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: 'ubuntu'
+    group: 'ubuntu'
+    mode: '0750'
+    state: 'directory'
+  loop:
+    - 'pihole-config'
+    - 'pihole-dnsmasq.d'
+  loop_control:
+    loop_var: 'dir'
+
+
+- name: 'Deploy pihole'
+  community.docker.docker_swarm_service:
+    name: 'pihole'
+    image: "pihole/pihole:{{ pihole_release }}"
+    # state: absent
+    env:
+      - "VIRTUAL_HOST={{ pihole_app_name }}.{{ traefik_domain }}"
+      - 'VIRTUAL_PORT=80'
+      - 'DNSMASQ_USER=root'
+      # - 'TZ="America/Chicago"'
+      - 'WEBPASSWORD=password'
+    mounts:
+      - source: "{{ docker_data_dir }}/pihole-config"
+        target: '/etc/pihole'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/pihole-dnsmasq.d"
+        target: '/etc/dnsmasq.d'
+        type: 'bind'
+      - source: "/etc/localtime"
+        target: '/etc/localtime'
+        type: 'bind'
+    networks:
+      - 'pihole_backend'
+      - 'traefik_backend'
+    dns:
+      - 127.0.0.1
+      - 10.1.1.1
+      - 1.0.0.1
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.pihole.rule: Host(`{{ pihole_app_name }}.{{ traefik_domain }}`)
+      # traefik.http.routers.pihole.rule: HostHeader(`{{ pihole_app_name }}.{{ traefik_domain }}`)
+      traefik.http.routers.pihole.tls: "true"
+      traefik.http.routers.pihole.entrypoints: websecure
+      traefik.http.services.pihole.loadbalancer.server.port: 80
+      # 53/udp
+      traefik.udp.routers.pihole-dns-udp.entrypoints: dns-udp
+      traefik.udp.routers.pihole-dns-udp.service: pihole-dns-udp
+      traefik.udp.services.pihole-dns-udp.loadbalancer.server.port: 53
+      # 53/tcp
+      # traefik.tcp.routers.pihole-dns-tcp.rule: HostSNI(`*`)
+      traefik.tcp.routers.pihole-dns-tcp.entrypoints: dns-tcp
+      traefik.tcp.routers.pihole-dns-tcp.service: pihole-dns-tcp
+      traefik.tcp.services.pihole-dns-tcp.loadbalancer.server.port: 53
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.role == worker'
+  no_log: "{{ not docker_service_debug }}"

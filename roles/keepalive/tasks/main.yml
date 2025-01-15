@@ -1,0 +1,29 @@
+---
+- name: Keepalived Install package
+  ansible.builtin.apt:
+    name: "keepalived"
+    state: latest
+
+- name: Keepalived Copy main config
+  ansible.builtin.template:
+    src: main.keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+  when:
+    - cluster_role == "main"
+  notify:
+    - restart_keepalived
+
+- name: Keepalived Copy secondary config
+  ansible.builtin.template:
+    src: secondary.keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+  when:
+    - cluster_role == "secondary"
+  notify:
+    - restart_keepalived
+
+- name: Keepalived Start and enable service
+  service:
+    name: keepalived
+    state: started
+    enabled: true

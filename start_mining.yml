@@ -1,0 +1,11 @@
+---
+- hosts: all
+  gather_facts: no
+  user: ubuntu
+  become: true
+  tasks:
+    - name: Start Mining tasks
+      ansible.builtin.systemd_service:
+        name: miner.service
+        state: started
+        enabled: true

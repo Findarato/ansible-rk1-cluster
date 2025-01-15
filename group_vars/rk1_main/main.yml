@@ -1,0 +1,4 @@
+---
+
+cluster_role: main
+docker_gluster_interface: eth0

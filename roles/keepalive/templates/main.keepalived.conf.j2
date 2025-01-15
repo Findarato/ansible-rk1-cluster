@@ -1,0 +1,20 @@
+global_defs {
+  router_id DOCKER_INGRESS
+}
+
+vrrp_instance VI_1 {
+  state MASTER
+  interface {{ docker_gluster_interface}}
+  virtual_router_id 51
+  priority 100
+  advert_int 1
+  authentication {
+    auth_type PASS
+    auth_pass mypassword
+  }
+
+  virtual_ipaddress {
+    {{ keepapive_vip }}
+  }
+
+}
