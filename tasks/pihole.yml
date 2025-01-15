@@ -9,7 +9,7 @@
     path: "{{ docker_data_dir }}/{{ dir }}"
     owner: 'ubuntu'
     group: 'ubuntu'
-    mode: '0750'
+    mode: '0755'
     state: 'directory'
   loop:
     - 'pihole-config'
@@ -29,6 +29,7 @@
       - 'DNSMASQ_USER=root'
       # - 'TZ="America/Chicago"'
       - 'WEBPASSWORD=password'
+      - "hostname={{ pihole_app_name }}"
     mounts:
       - source: "{{ docker_data_dir }}/pihole-config"
         target: '/etc/pihole'

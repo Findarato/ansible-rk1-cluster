@@ -28,9 +28,14 @@
     #   tags: docker
     # - role: geerlingguy.pip
     #   tags: python, pip
-    - role: gluster-docker
-      tags: gluster, docker
+    # - role: gluster-docker
+    #   tags: gluster, docker
     - role: keepalive
       tags: keepalive
       vars:
-        keepapive_vip: 10.1.1.35
+        keepapive_vip:
+          - 10.1.1.35
+          - 10.1.1.6
+  vars_files:
+    - main.vault.yml
+    - main.yml

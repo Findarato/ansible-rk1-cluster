@@ -4,43 +4,11 @@
   user: ubuntu
   become: true
   vars_files:
+    - main.vault.yml
     - main.yml
   tasks:
-    # - name: Install virtualenv
-    #   ansible.builtin.package:
-    #     name: python3-virtualenv
-    #     state: latest
-
-    # - name: testing
-    #   debug:
-    #     msg: '{{ ansible_env.HOME }}/ansible_env/'
-
-    # - name: Install Misc Python packages
-    #   ansible.builtin.pip:
-    #     name:  "{{ pipy }}"
-    #     state: latest
-    #     virtualenv: '{{ ansible_env.HOME }}/ansible_env/'
-    #     virtualenv_site_packages: yes
-    #   loop:
-    #     - docker
-    #     - jsonpatch
-    #     - pyOpenSSL
-    #   loop_control:
-    #     loop_var: 'pipy'
-
-    # - name: Install Misc Python packages
-    #   ansible.builtin.pip:
-    #     name:  "{{ pipy }}"
-    #     state: latest
-    #   loop:
-    #     - docker
-    #     - jsonpatch
-    #     - pyOpenSSL
-    #   loop_control:
-    #     loop_var: 'pipy'
-
-    # - name: Setup Traffic
-    #   ansible.builtin.include_tasks: tasks/traefik.yml
+    - name: Setup Traffic
+      ansible.builtin.include_tasks: tasks/traefik.yml
     # - name: Setup portainer
     #   ansible.builtin.include_tasks: tasks/portainer.yml
     # - name: Setup gittea

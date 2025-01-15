@@ -57,6 +57,7 @@
       - '--providers.docker.network=traefik_backend'
       - '--providers.file.filename=/certs/traefik.toml'
       - '--entrypoints.web.address=:80'
+      - '--entrypoints.aptcacher.address=:3142'
       - '--entrypoints.websecure.address=:443'
       - '--entrypoints.dns-tcp.address=:53'
       - '--entrypoints.dns-udp.address=:53/udp'
@@ -64,6 +65,13 @@
       # - "--entryPoints.websecure.forwardedHeaders.trustedIPs={{ traefik_upstream_proxy }}"
       - '--api.insecure'
       - '--accesslog=true'
+      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=ovh"
+      - "--certificatesresolvers.letsencrypt.acme.email={{ vault_emmail }}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
+    env:
+      - "CF_API_EMAIL={{ vault_cf_api_email }}"
+      - "CF_DNS_API_TOKEN={{ vault_cf_api_token }}"
     mounts:
       - source: '/var/run/docker.sock'
         target: '/var/run/docker.sock'
@@ -86,6 +94,10 @@
       - published_port: 8080
         target_port: 8080
         mode: 'host'
+      - published_port: 3142
+        target_port: 3142
+        protocol: tcp
+        mode: 'host'
       - published_port: 53
         target_port: 53
         protocol: udp
@@ -94,7 +106,29 @@
         target_port: 53
         protocol: tcp
         mode: 'host'
+
     placement:
       constraints:
         - 'node.role == manager'
     user: null
+
+- name: 'Deploy whoami'
+  community.docker.docker_swarm_service:
+    name: 'whoami'
+    image: "traefik/whoami"
+    # state: absent
+    networks:
+      - 'traefik_backend'
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.whoami.rule: Host(`whoami.example.com`)
+      traefik.http.routers.whoami.entrypoints: websecure
+      traefik.http.routers.whoami.tls.certresolver: myresolver
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.role == worker'
+  no_log: "{{ not docker_service_debug }}"
