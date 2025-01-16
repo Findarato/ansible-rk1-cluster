@@ -50,7 +50,7 @@
     publish:
     labels:
       traefik.enable: "true"
-      traefik.http.routers.pihole.rule: Host(`{{ pihole_app_name }}.{{ traefik_domain }}`)
+      traefik.http.routers.pihole.rule: Host(`{{ pihole_app_name }}.{{ traefik_domain_rk1 }}`)
       # traefik.http.routers.pihole.rule: HostHeader(`{{ pihole_app_name }}.{{ traefik_domain }}`)
       traefik.http.routers.pihole.tls: "true"
       traefik.http.routers.pihole.entrypoints: websecure
@@ -58,9 +58,9 @@
       # 53/udp
       traefik.udp.routers.pihole-dns-udp.entrypoints: dns-udp
       traefik.udp.routers.pihole-dns-udp.service: pihole-dns-udp
-      traefik.udp.services.pihole-dns-udp.loadbalancer.server.port: 53
+      traefik.udp.services.pihole-dns-udp.loadbalancer.server.port: "53/udp"
       # 53/tcp
-      # traefik.tcp.routers.pihole-dns-tcp.rule: HostSNI(`*`)
+      traefik.tcp.routers.pihole-dns-tcp.rule: HostSNI(`*`)
       traefik.tcp.routers.pihole-dns-tcp.entrypoints: dns-tcp
       traefik.tcp.routers.pihole-dns-tcp.service: pihole-dns-tcp
       traefik.tcp.services.pihole-dns-tcp.loadbalancer.server.port: 53

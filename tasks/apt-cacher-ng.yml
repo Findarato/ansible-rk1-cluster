@@ -1,7 +1,7 @@
 ---
 - name: 'Create network'
   community.docker.docker_network:
-    name: 'apt_cacher_network'
+    name: 'apt_cacher_backend'
     driver: 'overlay'
 
 - name: Create NFS mount
@@ -25,13 +25,20 @@
         target: '/var/cache/apt-cacher-ng'
         type: volume
     networks:
-      - 'apt_cacher_network'
+      - 'apt_cacher_backend'
+      - 'traefik_backend'
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.aptcacherng.rule: Host(`{{ aptcacherng_app_name }}.{{ traefik_domain }}`)
+      traefik.http.services.aptcacherng.loadbalancer.server.port: 3142
+      traefik.http.routers.aptcacherng.entrypoints: aptcacher
+      traefik.http.routers.aptcacherng.tls: "false"
     mode: 'replicated'
-    replicas: 1
+    replicas: 2
     restart_config:
       condition: "{{ restart_condition }}"
-    publish:
-      - mode: host
-        published_port: 3142
-        target_port: 3142
-    user: null
+    placement:
+      constraints:
+        - 'node.role == worker'
+  no_log: "{{ not docker_service_debug }}"

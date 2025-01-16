@@ -14,6 +14,7 @@
     state: 'directory'
   loop:
     - 'traefik_data'
+    - 'traefik_data/certs/'
   loop_control:
     loop_var: 'dir'
 
@@ -22,25 +23,33 @@
   block:
     - name: 'Generate SSL key'
       community.crypto.openssl_privatekey:
-        path: "{{ docker_data_dir }}/traefik_data/traefik.key"
+        path: "{{ docker_data_dir }}/traefik_data/certs/traefik.key"
 
     - name: 'Generate SSL certificate request'
       community.crypto.openssl_csr:
-        path: "{{ docker_data_dir }}/traefik_data/traefik.csr"
-        privatekey_path: "{{ docker_data_dir }}/traefik_data/traefik.key"
+        path: "{{ docker_data_dir }}/traefik_data/certs/traefik.csr"
+        privatekey_path: "{{ docker_data_dir }}/traefik_data/certs/traefik.key"
         common_name: "*.{{ traefik_domain }}"
 
     - name: 'Self-sign SSL certificate'
       community.crypto.x509_certificate:
-        path: "{{ docker_data_dir }}/traefik_data/traefik.crt"
-        privatekey_path: "{{ docker_data_dir }}/traefik_data/traefik.key"
-        csr_path: "{{ docker_data_dir }}/traefik_data/traefik.csr"
+        path: "{{ docker_data_dir }}/traefik_data/certs/traefik.crt"
+        privatekey_path: "{{ docker_data_dir }}/traefik_data/certs/traefik.key"
+        csr_path: "{{ docker_data_dir }}/traefik_data/certs/traefik.csr"
         provider: selfsigned
 
-- name: 'Deploy Traefik TOML config'
+- name: 'Deploy Traefik YML config'
   ansible.builtin.copy:
-    src: 'traefik.toml'
-    dest: "{{ docker_data_dir }}/traefik_data/traefik.toml"
+    src: 'files/traefik.yml'
+    dest: "{{ docker_data_dir }}/traefik_data/traefik.yml"
+    owner: 'root'
+    group: 'root'
+    mode: '0644'
+
+- name: 'Deploy Traefik YML Extra config'
+  ansible.builtin.copy:
+    src: 'files/config.yml'
+    dest: "{{ docker_data_dir }}/traefik_data/config.yml"
     owner: 'root'
     group: 'root'
     mode: '0644'
@@ -49,34 +58,47 @@
   community.docker.docker_swarm_service:
     name: 'traefik'
     image: 'traefik:{{ traefik_version }}'
+    # state: absent
+    force_update: true
     command:
       - '/usr/local/bin/traefik'
+      - "--log.level=DEBUG"
       - '--providers.docker'
-      - '--providers.docker.swarmMode'
+      - '--providers.docker.swarmMode=true'
+      # - '--providers.swarm=true' # Version 3
+      - '--global.checkNewVersion=true'
+      - '--global.sendAnonymousUsage=true'
       - '--providers.docker.watch'
       - '--providers.docker.network=traefik_backend'
-      - '--providers.file.filename=/certs/traefik.toml'
-      - '--entrypoints.web.address=:80'
-      - '--entrypoints.aptcacher.address=:3142'
-      - '--entrypoints.websecure.address=:443'
-      - '--entrypoints.dns-tcp.address=:53'
-      - '--entrypoints.dns-udp.address=:53/udp'
-      # - "--entryPoints.web.forwardedHeaders.trustedIPs={{ traefik_upstream_proxy }}"
-      # - "--entryPoints.websecure.forwardedHeaders.trustedIPs={{ traefik_upstream_proxy }}"
-      - '--api.insecure'
-      - '--accesslog=true'
-      - "--certificatesresolvers.myresolver.acme.dnschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.dnschallenge.provider=ovh"
-      - "--certificatesresolvers.letsencrypt.acme.email={{ vault_emmail }}"
-      - "--certificatesresolvers.letsencrypt.acme.storage=acme.json"
+      - '--providers.file.filename=/traefik.yml'
+    labels:
+      traefik.http.routers.websecure.tls.certresolver: cloudflare
+      traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
+      traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
+      traefik.http.routers.websecure.service: "api@internal"
+      traefik.http.routers.whoami.tls.certresolver: cloudflare
     env:
-      - "CF_API_EMAIL={{ vault_cf_api_email }}"
+      # - "CF_API_EMAIL={{ vault_cf_api_email }}"   # Do not use if using token
+      # - "CF_API_KEY={{ vault_cf_api_key }}"       # Do not use if using token
       - "CF_DNS_API_TOKEN={{ vault_cf_api_token }}"
     mounts:
+      - source: '/etc/localtime'
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
       - source: '/var/run/docker.sock'
         target: '/var/run/docker.sock'
         type: 'bind'
-      - source: '{{ docker_data_dir }}/traefik_data'
+        readonly: true
+      - source: '{{ docker_data_dir }}/traefik_data/traefik.yml'
+        target: '/traefik.yml'
+        type: 'bind'
+        readonly: true
+      - source: '{{ docker_data_dir }}/traefik_data/config.yml'
+        target: '/config.yml'
+        type: 'bind'
+        readonly: true
+      - source: '{{ docker_data_dir }}/traefik_data/certs'
         target: '/certs'
         type: 'bind'
     networks:
@@ -117,13 +139,18 @@
     name: 'whoami'
     image: "traefik/whoami"
     # state: absent
+    force_update: true
     networks:
       - 'traefik_backend'
     labels:
       traefik.enable: "true"
-      traefik.http.routers.whoami.rule: Host(`whoami.example.com`)
+      traefik.http.routers.whoami.rule: "Host(`whoami.{{ traefik_domain_rk1 }}`)"
       traefik.http.routers.whoami.entrypoints: websecure
-      traefik.http.routers.whoami.tls.certresolver: myresolver
+      traefik.http.routers.websecure.tls.certresolver: cloudflare
+      traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
+      traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
+      traefik.http.services.whoami.loadbalancer.server.port: 80
+      traefik.http.routers.whoami.tls.certresolver: cloudflare
     mode: 'replicated'
     replicas: 1
     restart_config:
