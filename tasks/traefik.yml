@@ -93,6 +93,9 @@
       - source: '{{ docker_data_dir }}/traefik_data/traefik.yml'
         target: '/traefik.yml'
         type: 'bind'
+      # - source: '{{ docker_data_dir }}/traefik_data/acme.yml'
+      #   target: '/acme.yml'
+      #   type: 'bind'
         readonly: true
       - source: '{{ docker_data_dir }}/traefik_data/config.yml'
         target: '/config.yml'
