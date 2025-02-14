@@ -62,6 +62,7 @@
       traefik.http.routers.smokeping.tls: "true"
       traefik.http.routers.smokeping.entrypoints: websecure
       traefik.http.services.smokeping.loadbalancer.server.port: "80"
+      traefik.http.routers.my-website-frontend-http.middlewares: redirect-to-https
       # traefik.http.routers.smokeping.tls.certresolver: cloudflare
       # traefik.http.routers.smokeping.tls.domains[0].main: "*.mcharryville.space"
       # traefik.http.routers.smokeping.tls.domains[0].sans: "*.rk1.mcharryville.space"

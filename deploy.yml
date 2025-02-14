@@ -7,10 +7,10 @@
     - main.vault.yml
     - main.yml
   tasks:
-    # - name: Setup Traffic
-    #   ansible.builtin.include_tasks: tasks/traefik.yml
-    #   vars:
-    #     traefik_selfsign: false
+    - name: Setup Traffic
+      ansible.builtin.include_tasks: tasks/traefik.yml
+      vars:
+        traefik_selfsign: false
     # - name: Setup portainer
     #   ansible.builtin.include_tasks: tasks/portainer.yml
     # - name: Setup gittea
