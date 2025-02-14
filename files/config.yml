@@ -1,14 +1,10 @@
 middlewares:
-    addprefix-pihole:
+    pihole-addprefix:
       addPrefix:
-        prefix: "/admin"
-    https-redirectscheme:
-      redirectScheme:
-        scheme: https
-        permanent: true
-    redirectregex-pihole:
+        prefix: /admin
+    pihole-redirectregex:
       redirectRegex:
-        regex: "/admin/(.*)"
+        regex: /admin/$
         replacement: /
 
     default-headers:

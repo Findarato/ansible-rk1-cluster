@@ -1,0 +1,106 @@
+---
+# tasks file for smokeping
+
+- name: Install Python tools for docker
+  pip:
+    name: docker
+    state: latest
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'xmrprxy_backend'
+    driver: 'overlay'
+  tags:
+    - xmrprxy
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0755'
+    state: 'directory'
+  loop:
+    - 'xmrprxy-data'
+  loop_control:
+    loop_var: 'dir'
+
+
+- name: 'Deploy smokeping'
+  community.docker.docker_swarm_service:
+    name: 'smokeping'
+    image: "lscr.io/linuxserver/smokeping:{{ smokeping_release }}"
+    # hostname: smokeping-primary
+    force_update: true
+    env:
+      - "ServerName=smokeping-primary"
+      - "PUID=1000"
+      - "PGID=1000"
+      - "TZ=America/Chicago"
+      - "MASTER_URL=https://smokeping.rk1.mcharryville.space" #optional
+      - "SHARED_SECRET=password" #optional
+      - "CACHE_DIR=/tmp" #optional
+    mounts:
+      - source: "{{ docker_data_dir }}/smokeping-config"
+        target: '/config'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/smokeping-data"
+        target: '/data'
+        type: 'bind'
+      - source: "/etc/localtime"
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
+    networks:
+      - 'xmrprxy_backend'
+      - 'traefik_backend'
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.smokeping.rule: Host(`{{ smokeping_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.smokeping.tls: "true"
+      traefik.http.routers.smokeping.entrypoints: websecure
+      traefik.http.services.smokeping.loadbalancer.server.port: 80
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.role == worker'
+  no_log: "{{ not docker_service_debug }}"
+
+# - name: 'Deploy smokeping secondary'
+#   community.docker.docker_swarm_service:
+#     name: 'smokeping-worker'
+#     image: "lscr.io/linuxserver/smokeping:{{ smokeping_release }}"
+#     hostname: smokeping-master
+#     # state: absent
+#     env:
+#       - "PUID=1000"
+#       - "PGID=1000"
+#       - "TZ=America/Chicago"
+#       - "MASTER_URL=https://smokeping.rk1.mcharryville.space" #optional
+#       - "SHARED_SECRET=password" #optional
+#       - "CACHE_DIR=/tmp" #optional
+#     mounts:
+#       - source: "{{ docker_data_dir }}/smokeping-config"
+#         target: '/config'
+#         type: 'bind'
+#       - source: "{{ docker_data_dir }}/smokeping-data"
+#         target: '/data'
+#         type: 'bind'
+#       - source: "/etc/localtime"
+#         target: '/etc/localtime'
+#         type: 'bind'
+#         readonly: true
+#     networks:
+#       - 'smokeping_backend'
+#     mode: 'replicated'
+#     replicas: 2
+#     restart_config:
+#       condition: "{{ restart_condition }}"
+#     placement:
+#       constraints:
+#         - 'node.role == worker'
+#   no_log: "{{ not docker_service_debug }}"

@@ -75,7 +75,8 @@
       traefik.http.routers.websecure.tls.certresolver: cloudflare
       traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
       traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
-      traefik.http.routers.websecure.service: "api@internal"
+      traefik.http.routers.websecure.service[0]: "api@internal"
+      traefik.http.routers.websecure.service[1]: "ping@internal"
       traefik.http.routers.whoami.tls.certresolver: cloudflare
     env:
       # - "CF_API_EMAIL={{ vault_cf_api_email }}"   # Do not use if using token
@@ -93,17 +94,14 @@
       - source: '{{ docker_data_dir }}/traefik_data/traefik.yml'
         target: '/traefik.yml'
         type: 'bind'
-      # - source: '{{ docker_data_dir }}/traefik_data/acme.yml'
-      #   target: '/acme.yml'
-      #   type: 'bind'
-        readonly: true
+      - source: '{{ docker_data_dir }}/traefik_data/certs'
+        target: '/certs/'
+        type: 'bind'
+        readonly: false
       - source: '{{ docker_data_dir }}/traefik_data/config.yml'
         target: '/config.yml'
         type: 'bind'
         readonly: true
-      - source: '{{ docker_data_dir }}/traefik_data/certs'
-        target: '/certs'
-        type: 'bind'
     networks:
       - 'traefik_backend'
     mode: 'global'
@@ -112,26 +110,23 @@
     publish:
       - published_port: 80
         target_port: 80
-        mode: 'host'
+        mode: "host"
       - published_port: 443
         target_port: 443
-        mode: 'host'
+        mode: "host"
       - published_port: 8080
         target_port: 8080
-        mode: 'host'
-      - published_port: 3142
-        target_port: 3142
-        protocol: tcp
-        mode: 'host'
+        mode: "host"
+      - published_port: 8082
+        target_port: 8082
+        mode: "host"
+      - published_port: 3333
+        target_port: 3333
+        mode: "host"
       - published_port: 53
         target_port: 53
-        protocol: udp
-        mode: 'host'
-      - published_port: 53
-        target_port: 53
-        protocol: tcp
-        mode: 'host'
-
+        protocol: "udp"
+        mode: "host"
     placement:
       constraints:
         - 'node.role == manager'
@@ -148,14 +143,11 @@
     labels:
       traefik.enable: "true"
       traefik.http.routers.whoami.rule: "Host(`whoami.{{ traefik_domain_rk1 }}`)"
+      traefik.http.routers.whoami.tls: "true"
       traefik.http.routers.whoami.entrypoints: websecure
-      traefik.http.routers.websecure.tls.certresolver: cloudflare
-      traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
-      traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
-      traefik.http.services.whoami.loadbalancer.server.port: 80
-      traefik.http.routers.whoami.tls.certresolver: cloudflare
+      traefik.http.services.whoami.loadbalancer.server.port: "80"
     mode: 'replicated'
-    replicas: 1
+    replicas: 3
     restart_config:
       condition: "{{ restart_condition }}"
     placement:

@@ -7,19 +7,25 @@
     - main.vault.yml
     - main.yml
   tasks:
-    - name: Setup Traffic
-      ansible.builtin.include_tasks: tasks/traefik.yml
+    # - name: Setup Traffic
+    #   ansible.builtin.include_tasks: tasks/traefik.yml
+    #   vars:
+    #     traefik_selfsign: false
     # - name: Setup portainer
     #   ansible.builtin.include_tasks: tasks/portainer.yml
     # - name: Setup gittea
     #   ansible.builtin.include_tasks: tasks/gittea.yml
     # - name: Setup apt-cacher
-    #   ansible.builtin.include_tasks: tasks/apt-cacher.yml
+    #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     # - name: Setup pihole
     #   ansible.builtin.include_tasks: tasks/pihole.yml
     # - name: Setup apt-cacher-ng
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
-  # roles:
+    - name: Setup 'isp-pollution'
+      ansible.builtin.include_tasks: tasks/isp-pollution.yml
+  roles:
+    # - role: swarm-smokeping
+    #   tags: [ smokeping ]
   #   - role: apt-prep
   #     vars:
   #       apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/

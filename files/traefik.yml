@@ -3,14 +3,17 @@ api:
   debug: true
   insecure: true
 
-# metrics:
-#   influxDB:
-#     address: influx.mcharryville.space:8089
-#     protocol: udp
-#     database: traefik
-#     retentionPolicy: "two_hours"
-  # prometheus:
-  #   entryPoint: metrics
+metrics:
+  # addInternals: true
+  influxDB:
+    address: influx.mcharryville.space:8089
+    protocol: tcp
+    database: traefik
+    retentionPolicy: "two_hours"
+  prometheus:
+    addEntryPointsLabels: true
+    entryPoint: metrics
+    # entryPoint: metrics
 # accesslog: true
 sendAnonymousUsage: true
 
@@ -19,12 +22,12 @@ entryPoints:
     address: ":80"
   websecure:
     address: ":443"
-  dns-tcp:
-    address: ":53"
-  dns-udp:
+  pihole-dns-udp:
     address: ":53/udp"
-  aptcacher:
-    address: ":3142"
+  pihole-dns-tcp:
+    address: ":53/tcp"
+  metrics:
+    address: :8082
 
 tls:
   stores:
@@ -32,6 +35,9 @@ tls:
       defaultCertificate:
         certFile = "/certs/traefik.crt"
         keyFile = "/certs/traefik.key"
+
+ping:
+  entryPoint: websecure
 
 providers:
   docker:
@@ -42,11 +48,13 @@ providers:
   file:
     filename: /config.yml
 
+
+
 certificatesResolvers:
   cloudflare:
     acme:
       email: findarato@gmail.com
-      storage: acme.json
+      storage: /certs/acme.json
       certificatesDuration: 72
       caServer: https://acme-v02.api.letsencrypt.org/directory # production (default)
       # caServer: https://acme-staging-v02.api.letsencrypt.org/directory # staging

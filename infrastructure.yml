@@ -35,7 +35,6 @@
       vars:
         keepapive_vip:
           - 10.1.1.35
-          - 10.1.1.6
   vars_files:
     - main.vault.yml
     - main.yml

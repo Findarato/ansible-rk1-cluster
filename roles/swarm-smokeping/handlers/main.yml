@@ -1,0 +1,16 @@
+---
+- name: Restart firewalld
+  service:
+    name: firewalld
+    state: restarted
+
+- name: Restart UFW
+  service:
+    name: ufw
+    state: restarted
+
+- name: Restart SWAG
+  community.docker.docker_container:
+    name: swag
+    state: started
+    restart: true

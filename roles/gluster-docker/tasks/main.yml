@@ -40,3 +40,4 @@
 #     name: "{{ docker_network }}"
 #     driver: overlay
 
+#localhost:/dockervol /docker glusterfs defaults,_netdev 0 0

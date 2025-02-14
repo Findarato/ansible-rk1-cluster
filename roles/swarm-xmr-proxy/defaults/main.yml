@@ -1,0 +1,12 @@
+---
+# defaults file for smokeping
+
+# General Docker variables
+docker_log_driver: "json-file"
+docker_log_options:
+  max-file: "3"   # number of files or file count
+  max-size: "10m" # file size
+
+smokeping_dns_domains: example.com
+smokeping_dns_servers: ['1.1.1.1','8.8.8.8']
+docker_smokeping_storage: /docker/

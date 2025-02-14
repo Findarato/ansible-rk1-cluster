@@ -19,7 +19,7 @@
   community.docker.docker_swarm_service:
     name: 'apt-cacher-ng'
     image: 'sameersbn/apt-cacher-ng'
-    # state: absent
+    state: absent
     mounts:
       - source: "nfs-apt-cacher-ng"
         target: '/var/cache/apt-cacher-ng'
@@ -35,7 +35,7 @@
       traefik.http.routers.aptcacherng.entrypoints: aptcacher
       traefik.http.routers.aptcacherng.tls: "false"
     mode: 'replicated'
-    replicas: 2
+    replicas: 0
     restart_config:
       condition: "{{ restart_condition }}"
     placement:

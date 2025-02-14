@@ -1,0 +1,48 @@
+---
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'traefik_backend'
+    driver: 'overlay'
+    internal: false
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: 'ubuntu'
+    group: 'ubuntu'
+    mode: '0755'
+    state: 'directory'
+  loop:
+    - 'pollution-config'
+  loop_control:
+    loop_var: 'dir'
+
+- name: Copy pollution-config
+  ansible.builtin.copy:
+    src: pollution-config.json
+    dest: "{{ docker_data_dir }}/pollution-config/config.json"
+    owner: 'root'
+    group: 'root'
+
+- name: 'Deploy pollution Generator'
+  community.docker.docker_swarm_service:
+    name: 'isp-pollution'
+    # image: "hvalev/isp-pollution"
+    image: "mq83/noisy"
+    # state: absent
+    force_update: true
+    mounts:
+      - source: "{{ docker_data_dir }}/pollution-config/config.json"
+        target: '/config.json'
+        type: 'bind'
+        readonly: true
+    networks:
+      - 'traefik_backend'
+    mode: 'replicated'
+    replicas: 24
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.role == worker'
+  no_log: "{{ not docker_service_debug }}"

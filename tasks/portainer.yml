@@ -7,8 +7,8 @@
 - name: 'Create directory for container data'
   ansible.builtin.file:
     path: "{{ docker_data_dir }}/portainer_data"
-    owner: 'ubuntu'
-    group: 'ubuntu'
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
     mode: '0750'
     state: 'directory'
 

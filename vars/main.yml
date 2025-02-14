@@ -4,6 +4,8 @@ docker_edition: 'ce'
 
 docker_data_dir: '/docker/volumes'                # Where to store the volumes on the docker hosts
 docker_worker_group: 'docker_workers'             # Groups that contain this Swarm's workers
+docker_user: ubuntu
+
 
 restart_condition: 'any'
 
@@ -23,3 +25,11 @@ gitea_release: 'latest'
 
 pihole_release: 'latest'
 pihole_app_name: pihole
+orbital_sync_release: 1
+
+
+smokeping_app_name: smokeping
+smokeping_release: 'latest'                       # What version of the container to use
+
+
+dns_servers: ['10.1.1.1', '10.1.1.6']
