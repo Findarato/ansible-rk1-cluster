@@ -1,6 +1,4 @@
 ---
-# tasks file for smokeping
-
 - name: 'Create network'
   community.docker.docker_network:
     name: 'smokeping_backend'
@@ -21,6 +19,11 @@
   loop_control:
     loop_var: 'dir'
 
+- name: 'Remove smokeping'
+  community.docker.docker_swarm_service:
+    name: 'smokeping'
+    state: absent
+    replicas: 0
 
 - name: 'Deploy smokeping'
   community.docker.docker_swarm_service:

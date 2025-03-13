@@ -31,5 +31,7 @@ orbital_sync_release: 1
 smokeping_app_name: smokeping
 smokeping_release: 'latest'                       # What version of the container to use
 
+discountbandit_app_name: discountbandit
+discountbandit_release: 'latest'                       # What version of the container to use
 
 dns_servers: ['10.1.1.1', '10.1.1.6']

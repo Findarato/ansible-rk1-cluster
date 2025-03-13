@@ -7,10 +7,10 @@
     - main.vault.yml
     - main.yml
   tasks:
-    - name: Setup Traffic
-      ansible.builtin.include_tasks: tasks/traefik.yml
-      vars:
-        traefik_selfsign: false
+    # - name: Setup Traffic
+    #   ansible.builtin.include_tasks: tasks/traefik.yml
+    #   vars:
+    #     traefik_selfsign: false
     # - name: Setup portainer
     #   ansible.builtin.include_tasks: tasks/portainer.yml
     # - name: Setup gittea
@@ -21,8 +21,10 @@
     #   ansible.builtin.include_tasks: tasks/pihole.yml
     # - name: Setup apt-cacher-ng
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
-    - name: Setup 'isp-pollution'
-      ansible.builtin.include_tasks: tasks/isp-pollution.yml
+    # - name: Setup 'isp-pollution'
+    #   ansible.builtin.include_tasks: tasks/isp-pollution.yml
+    - name: Setup 'discount-bandit'
+      ansible.builtin.include_tasks: tasks/discount-bandit.yml
   roles:
     # - role: swarm-smokeping
     #   tags: [ smokeping ]

@@ -1,12 +1,10 @@
 ---
-# tasks file for smokeping
-
 - name: 'Create network'
   community.docker.docker_network:
-    name: 'smokeping_backend'
+    name: 'discountbandit_backend'
     driver: 'overlay'
   tags:
-    - smokeping
+    - discountbandit
 
 - name: 'Create directory for container data'
   ansible.builtin.file:
@@ -16,31 +14,36 @@
     mode: '0755'
     state: 'directory'
   loop:
-    - 'smokeping-config'
-    - 'smokeping-data'
+    - 'discountbandit-config'
+    - 'discountbandit-data'
   loop_control:
     loop_var: 'dir'
 
-
-- name: 'Deploy smokeping'
+- name: 'Remove discountbandit'
   community.docker.docker_swarm_service:
-    name: 'smokeping'
-    image: "lscr.io/linuxserver/smokeping:{{ smokeping_release }}"
-    # hostname: smokeping-primary
+    name: 'discountbandit'
+    state: absent
+    replicas: 0
+
+- name: 'Deploy discountbandit'
+  community.docker.docker_swarm_service:
+    name: 'discountbandit'
+    image: "lscr.io/linuxserver/discountbandit:{{ discountbandit_release }}"
+    # hostname: discountbandit-primary
     force_update: true
     env:
-      - "ServerName=smokeping"
+      - "ServerName=discountbandit"
       - "PUID=1000"
       - "PGID=1000"
       - "TZ=America/Chicago"
-      # - "MASTER_URL=https://smokeping.rk1.mcharryville.space" #optional
+      # - "MASTER_URL=https://discountbandit.rk1.mcharryville.space" #optional
       - "SHARED_SECRET=password" #optional
       - "CACHE_DIR=/tmp" #optional
     mounts:
-      - source: "{{ docker_data_dir }}/smokeping-config"
+      - source: "{{ docker_data_dir }}/discountbandit-config"
         target: '/config'
         type: 'bind'
-      - source: "{{ docker_data_dir }}/smokeping-data"
+      - source: "{{ docker_data_dir }}/discountbandit-data"
         target: '/data'
         type: 'bind'
       - source: "/etc/localtime"
@@ -48,15 +51,15 @@
         type: 'bind'
         readonly: true
     networks:
-      - 'smokeping_backend'
+      - 'discountbandit_backend'
       - 'traefik_backend'
     publish:
     labels:
       traefik.enable: "true"
-      traefik.http.routers.smokeping.rule: Host(`{{ smokeping_app_name }}.{{ traefik_domain_rk1 }}`)
-      traefik.http.routers.smokeping.tls: "true"
-      traefik.http.routers.smokeping.entrypoints: websecure
-      traefik.http.services.smokeping.loadbalancer.server.port: "80"
+      traefik.http.routers.discountbandit.rule: Host(`{{ discountbandit_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.discountbandit.tls: "true"
+      traefik.http.routers.discountbandit.entrypoints: websecure
+      traefik.http.services.discountbandit.loadbalancer.server.port: "80"
     mode: 'replicated'
     replicas: 1
     restart_config:

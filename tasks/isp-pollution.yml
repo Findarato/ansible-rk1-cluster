@@ -39,7 +39,7 @@
     networks:
       - 'traefik_backend'
     mode: 'replicated'
-    replicas: 24
+    replicas: 6
     restart_config:
       condition: "{{ restart_condition }}"
     placement:
