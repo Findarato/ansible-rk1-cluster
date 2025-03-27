@@ -7,14 +7,14 @@
     - main.vault.yml
     - main.yml
   tasks:
-    # - name: Setup Traffic
-    #   ansible.builtin.include_tasks: tasks/traefik.yml
-    #   vars:
-    #     traefik_selfsign: false
+    - name: Setup janitor
+      ansible.builtin.include_tasks: tasks/janitor.yml
+    - name: Setup Traffic
+      ansible.builtin.include_tasks: tasks/traefik.yml
+      vars:
+        traefik_selfsign: false
     # - name: Setup portainer
     #   ansible.builtin.include_tasks: tasks/portainer.yml
-    # - name: Setup gittea
-    #   ansible.builtin.include_tasks: tasks/gittea.yml
     # - name: Setup apt-cacher
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     # - name: Setup pihole
@@ -23,8 +23,20 @@
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     # - name: Setup 'isp-pollution'
     #   ansible.builtin.include_tasks: tasks/isp-pollution.yml
-    - name: Setup 'discount-bandit'
-      ansible.builtin.include_tasks: tasks/discount-bandit.yml
+    # - name: Setup Discount Bandit
+    #   ansible.builtin.include_tasks: tasks/discount-bandit.yml
+    # - name: Setup Change Detection
+    #   ansible.builtin.include_tasks: tasks/changedetection.yml
+    # - name: Add telegraf user to Docker Group
+    #   ansible.builtin.user:
+    #     name: telegraf
+    #     groups: docker
+    #     append: true
+    # - name: Restart telegraf
+    #   ansible.builtin.service:
+    #     name: telegraf
+    #     state: restarted
+
   roles:
     # - role: swarm-smokeping
     #   tags: [ smokeping ]

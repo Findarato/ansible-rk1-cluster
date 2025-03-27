@@ -32,6 +32,11 @@ smokeping_app_name: smokeping
 smokeping_release: 'latest'                       # What version of the container to use
 
 discountbandit_app_name: discountbandit
-discountbandit_release: 'latest'                       # What version of the container to use
+discountbandit_release: 'v3.4'                       # What version of the container to use
+
+
+changedetection_app_name: changedetection
+changedetection_release: 'latest'                       # What version of the container to use
+
 
 dns_servers: ['10.1.1.1', '10.1.1.6']

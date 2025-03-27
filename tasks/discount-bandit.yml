@@ -9,13 +9,14 @@
 - name: 'Create directory for container data'
   ansible.builtin.file:
     path: "{{ docker_data_dir }}/{{ dir }}"
-    owner: '{{ docker_user }}'
-    group: '{{ docker_user }}'
-    mode: '0755'
+    owner: 'root'
+    group: 'root'
+    mode: '0775'
     state: 'directory'
   loop:
     - 'discountbandit-config'
     - 'discountbandit-data'
+    - 'discountbandit-data/vendor'
   loop_control:
     loop_var: 'dir'
 
@@ -28,28 +29,24 @@
 - name: 'Deploy discountbandit'
   community.docker.docker_swarm_service:
     name: 'discountbandit'
-    image: "lscr.io/linuxserver/discountbandit:{{ discountbandit_release }}"
-    # hostname: discountbandit-primary
+    image: "cybrarist/discount-bandit:{{ discountbandit_release }}"
     force_update: true
     env:
-      - "ServerName=discountbandit"
-      - "PUID=1000"
-      - "PGID=1000"
-      - "TZ=America/Chicago"
-      # - "MASTER_URL=https://discountbandit.rk1.mcharryville.space" #optional
-      - "SHARED_SECRET=password" #optional
-      - "CACHE_DIR=/tmp" #optional
+      - 'APP_URL=https://discountbandit.rk1.mcharryville.space'
+      - 'ASSET_URL=https://discountbandit.rk1.mcharryville.space'
+      - 'DEFAULT_USER="test"'
+      - 'DEFAULT_EMAIL="docker@test.com"'
+      - 'DEFAULT_PASSWORD="thisismypassword"'
     mounts:
-      - source: "{{ docker_data_dir }}/discountbandit-config"
-        target: '/config'
+      - source: "{{ docker_data_dir }}/discountbandit-config/.env"
+        target: '/app/.env'
         type: 'bind'
-      - source: "{{ docker_data_dir }}/discountbandit-data"
-        target: '/data'
-        type: 'bind'
-      - source: "/etc/localtime"
-        target: '/etc/localtime'
-        type: 'bind'
-        readonly: true
+      # - source: "{{ docker_data_dir }}/discountbandit-data"
+      #   target: '/logs/'
+      #   type: 'bind'
+      # - source: "{{ docker_data_dir }}/discountbandit-data/vendor"
+      #   target: '/app/vendor'
+      #   type: 'bind'
     networks:
       - 'discountbandit_backend'
       - 'traefik_backend'
@@ -61,6 +58,7 @@
       traefik.http.routers.discountbandit.entrypoints: websecure
       traefik.http.services.discountbandit.loadbalancer.server.port: "80"
     mode: 'replicated'
+    # replicas: 2
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"

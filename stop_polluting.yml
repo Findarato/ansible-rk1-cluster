@@ -7,7 +7,6 @@
     - name: 'Deploy pollution Generator'
       community.docker.docker_swarm_service:
         name: 'isp-pollution'
-        # image: "hvalev/isp-pollution"
         image: "mq83/noisy"
         force_update: true
         env:
@@ -15,9 +14,4 @@
           - 'traefik_backend'
         mode: 'replicated'
         replicas: 0
-        restart_config:
-          condition: "{{ restart_condition }}"
-        # placement:
-        #   constraints:
-        #     - 'node.role == worker'
-      no_log: "{{ not docker_service_debug }}"
+      no_log: false

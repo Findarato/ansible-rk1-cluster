@@ -146,6 +146,7 @@
       traefik.http.routers.whoami.tls: "true"
       traefik.http.routers.whoami.entrypoints: websecure
       traefik.http.services.whoami.loadbalancer.server.port: "80"
+      traefik.docker.network: "traefik_backend"
     mode: 'replicated'
     replicas: 3
     restart_config:
@@ -154,3 +155,31 @@
       constraints:
         - 'node.role == worker'
   no_log: "{{ not docker_service_debug }}"
+
+- name: install visualizer
+  docker_swarm_service:
+    name: visualizer
+    # image: dockersamples/visualizer # X68
+    image: alexellis2/visualizer-arm:latest #ARM
+    state: absent
+    force_update: true
+    networks:
+      - 'traefik_backend'
+    mounts:
+      - source: '/var/run/docker.sock'
+        target: '/var/run/docker.sock'
+        type: 'bind'
+        readonly: true
+    restart_config:
+      condition: any
+      delay: 10s
+      # max_attempts: 5
+    labels:
+      traefik.enable: "true"
+      traefik.swarmmode: "true"
+      traefik.docker.network: "traefik_backend"
+      traefik.http.routers.visu-public-http.rule: "Host(`visualizer.{{ traefik_domain_rk1 }}`)"
+      traefik.http.routers.visu-public-http.entrypoints: "http"
+      traefik.http.services.visu-public.loadbalancer.server.port: "8080"
+    placement:
+      constraints: "node.role==manager"

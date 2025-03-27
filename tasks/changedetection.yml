@@ -1,0 +1,107 @@
+---
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'changedetection_backend'
+    driver: 'overlay'
+  tags:
+    - changedetection
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: '1000'
+    group: '1000'
+    mode: '0775'
+    state: 'directory'
+  loop:
+    - 'changedetection-config'
+  loop_control:
+    loop_var: 'dir'
+
+- name: 'Remove changedetection'
+  community.docker.docker_swarm_service:
+    name: "{{ item }}"
+    state: absent
+    replicas: 0
+  with_items:
+    - "chrome"
+    - "browser"
+    - "browser_ff"
+    - "playwrite"
+    - "changedetection"
+
+- name: 'Deploy browser'
+  community.docker.docker_swarm_service:
+    name: 'browser'
+    image: "ghcr.io/browserless/chromium"
+    # image: "ghcr.io/browserless/firefox"
+    force_update: true
+    env:
+      - 'TZ="America/Chicago"'
+      - 'DEFAULT_LAUNCH_ARGS="[\"--window-size=1920,1080\"]"'
+    networks:
+      - 'changedetection_backend'
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  no_log: "{{ not docker_service_debug }}"
+
+- name: 'Deploy Firefox'
+  community.docker.docker_swarm_service:
+    name: 'browser_ff'
+    # image: "ghcr.io/browserless/chromium"
+    image: "ghcr.io/browserless/firefox"
+    force_update: true
+    env:
+      - 'TZ="America/Chicago"'
+      - 'DEFAULT_LAUNCH_ARGS="[\"--window-size=1920,1080\"]"'
+    networks:
+      - 'changedetection_backend'
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  no_log: "{{ not docker_service_debug }}"
+
+
+
+- name: 'Deploy changedetection'
+  community.docker.docker_swarm_service:
+    name: 'changedetection'
+    image: "lscr.io/linuxserver/changedetection.io:{{ changedetection_release }}"
+    force_update: true
+    env:
+      - 'PGID="1000"'
+      - 'PUID="1000"'
+      - 'TZ="America/Chicago"'
+      - 'VIRTUAL_HOST="changedetection.rk1.mcharryville.space"'
+      - 'LC_ALL="en_US.UTF-8"'
+      - 'PLAYWRIGHT_DRIVER_URL="ws://browser:3000"'
+      - 'FETCH_WORKERS=2'
+      - 'DOCKER_MODS="linuxserver/mods:universal-wait-for-internet"'
+    mounts:
+      - source: "{{ docker_data_dir }}/changedetection-config"
+        target: '/config'
+        type: 'bind'
+    networks:
+      - 'changedetection_backend'
+      - 'traefik_backend'
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.changedetection.rule: Host(`{{ changedetection_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.changedetection.tls: "true"
+      traefik.http.routers.changedetection.entrypoints: websecure
+      traefik.http.services.changedetection.loadbalancer.server.port: "5000"
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.role == worker'
+  no_log: "{{ not docker_service_debug }}"
+
+
+
