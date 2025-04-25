@@ -53,18 +53,18 @@
     # image: "ghcr.io/browserless/chromium"
     image: "ghcr.io/browserless/firefox"
     force_update: true
+    state: absent
+    replicas: 0
     env:
       - 'TZ="America/Chicago"'
       - 'DEFAULT_LAUNCH_ARGS="[\"--window-size=1920,1080\"]"'
     networks:
       - 'changedetection_backend'
     mode: 'replicated'
-    replicas: 1
+
     restart_config:
       condition: "{{ restart_condition }}"
   no_log: "{{ not docker_service_debug }}"
-
-
 
 - name: 'Deploy changedetection'
   community.docker.docker_swarm_service:
@@ -102,6 +102,3 @@
       constraints:
         - 'node.role == worker'
   no_log: "{{ not docker_service_debug }}"
-
-
-

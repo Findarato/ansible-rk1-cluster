@@ -68,3 +68,12 @@
       constraints:
         - 'node.role == worker'
   no_log: "{{ not docker_service_debug }}"
+  tags:
+    - smokeping
+    - smokeping_deploy
+    - smokeping_config
+    - smokeping_network
+    - smokeping_service
+    - smokeping_data
+    - smokeping_volume
+    - smokeping_container

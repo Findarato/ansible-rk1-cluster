@@ -65,4 +65,4 @@
     placement:
       constraints:
         - 'node.role == worker'
-  no_log: "{{ not docker_service_debug }}"
+  # no_log: "{{ not docker_service_debug }}"

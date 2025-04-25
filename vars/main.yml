@@ -1,3 +1,5 @@
+---
+
 docker_service_debug: true                        # Enable to see sensitive output when deploying services
 
 docker_edition: 'ce'
@@ -32,7 +34,7 @@ smokeping_app_name: smokeping
 smokeping_release: 'latest'                       # What version of the container to use
 
 discountbandit_app_name: discountbandit
-discountbandit_release: 'v3.4'                       # What version of the container to use
+discountbandit_release: 'v3.6'                       # What version of the container to use
 
 
 changedetection_app_name: changedetection

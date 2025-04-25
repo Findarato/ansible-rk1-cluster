@@ -1,18 +1,16 @@
 ---
-- hosts: rk1_main
-  gather_facts: no
+- name: Deploy Docker Swarm Services
+  hosts: rk1_main
+  gather_facts: false
   user: ubuntu
   become: true
-  vars_files:
-    - main.vault.yml
-    - main.yml
   tasks:
-    - name: Setup janitor
-      ansible.builtin.include_tasks: tasks/janitor.yml
-    - name: Setup Traffic
-      ansible.builtin.include_tasks: tasks/traefik.yml
-      vars:
-        traefik_selfsign: false
+    # - name: Setup janitor
+    #   ansible.builtin.include_tasks: tasks/janitor.yml
+    # - name: Setup Traffic
+    #   ansible.builtin.include_tasks: tasks/traefik.yml
+    #   vars:
+    #     traefik_selfsign: false
     # - name: Setup portainer
     #   ansible.builtin.include_tasks: tasks/portainer.yml
     # - name: Setup apt-cacher
@@ -23,10 +21,10 @@
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     # - name: Setup 'isp-pollution'
     #   ansible.builtin.include_tasks: tasks/isp-pollution.yml
-    # - name: Setup Discount Bandit
-    #   ansible.builtin.include_tasks: tasks/discount-bandit.yml
-    # - name: Setup Change Detection
-    #   ansible.builtin.include_tasks: tasks/changedetection.yml
+    - name: Setup Discount Bandit
+      ansible.builtin.include_tasks: tasks/discount-bandit.yml
+    - name: Setup Change Detection
+      ansible.builtin.include_tasks: tasks/changedetection.yml
     # - name: Add telegraf user to Docker Group
     #   ansible.builtin.user:
     #     name: telegraf
@@ -38,6 +36,8 @@
     #     state: restarted
 
   roles:
+    - role: geerlingguy.pip
+      tags: [python, pip]
     # - role: swarm-smokeping
     #   tags: [ smokeping ]
   #   - role: apt-prep
@@ -51,5 +51,7 @@
     #     docker_users:
     #     - ubuntu
     #   tags: docker
-    # - role: geerlingguy.pip
-    #   tags: python, pip
+
+  vars_files:
+    - main.yml
+    - main.vault.yml
