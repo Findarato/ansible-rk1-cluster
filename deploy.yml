@@ -21,19 +21,25 @@
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     # - name: Setup 'isp-pollution'
     #   ansible.builtin.include_tasks: tasks/isp-pollution.yml
-    - name: Setup Discount Bandit
-      ansible.builtin.include_tasks: tasks/discount-bandit.yml
-    - name: Setup Change Detection
-      ansible.builtin.include_tasks: tasks/changedetection.yml
-    # - name: Add telegraf user to Docker Group
-    #   ansible.builtin.user:
-    #     name: telegraf
-    #     groups: docker
-    #     append: true
-    # - name: Restart telegraf
-    #   ansible.builtin.service:
-    #     name: telegraf
-    #     state: restarted
+    # - name: Setup Discount Bandit
+    #   ansible.builtin.include_tasks: tasks/discount-bandit.yml
+    #   tags: [discount-bandit]
+    # - name: Setup Change Detection
+    #   ansible.builtin.include_tasks: tasks/changedetection.yml
+    #   tags: [changedetection]
+    - name: Setup Wolnut
+      ansible.builtin.include_tasks: tasks/wolnut.yml
+      tags: [wolnut]
+
+# Run basic hosts setup
+    - name: Add telegraf user to Docker Group
+      ansible.builtin.user:
+        name: telegraf
+        groups: docker
+        append: true
+      notify:
+        - Restart telegraf
+
 
   roles:
     - role: geerlingguy.pip

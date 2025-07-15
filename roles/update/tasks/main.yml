@@ -10,21 +10,35 @@
   ansible.builtin.template:
     src: 00aptproxy.j2
     dest: /etc/apt/apt.conf.d/00aptproxy
+    owner: root
+    group: root
+    mode: '0644'
 
 - name: Update system
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
 
 - name: Update all packages to their latest version
   ansible.builtin.apt:
     name: "*"
     state: latest
+    only_upgrade: true
+  notify:
+    - Schedule reboot if needed
 
 - name: Remove useless packages from the cache
   ansible.builtin.apt:
-    autoclean: yes
+    autoclean: true
 
 - name: Remove dependencies that are no longer required and purge their configuration files
   ansible.builtin.apt:
-    autoremove: yes
+    autoremove: true
     purge: true
+
+- name: Schedule reboot if needed
+  ansible.builtin.reboot:
+    msg: "Rebooting to apply updates"
+    pre_reboot_delay: 10
+    post_reboot_delay: 30
+    test_command: uptime
+  when: ansible_facts['pkg_mgr'] == 'apt'

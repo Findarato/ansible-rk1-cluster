@@ -14,7 +14,7 @@ vrrp_instance VI_1 {
   }
 
   virtual_ipaddress {
-    {% for ip in keepapive_vip %}
+    {% for ip in keepalive_ip %}
     {{ ip }}
     {% endfor %}
   }

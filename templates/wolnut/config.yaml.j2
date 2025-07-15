@@ -1,0 +1,27 @@
+# copy this to config.yaml befor running wolnut
+log_level: INFO  # Options: DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+nut:
+  ups: "ups@rpi-utility.mcharryville.space"        # Format: <ups-name>@<host>
+  # username: "upsmon"          # Optional: omit if NUT server doesn't require auth
+  # password: "password"
+  username: "{{vault_nut_user }}"          # Optional: omit if NUT server doesn't require auth
+  password: "{{vault_nut_password }}"
+
+poll_interval: 15             # Poll interval in seconds — should be shorter than the NUT shutdown delay on any client
+
+wake_on:
+  restore_delay_sec: 30       # Delay (in seconds) after power is restored before sending WOL
+  min_battery_percent: 25     # Wait until battery reaches this percent before WOL
+  client_timeout_sec: 600     # Time to wait for client to come back online before logging an error
+  reattempt_delay: 30         # Minimum time (in seconds) between WOL attempts per client
+
+# clients:
+#   - name: "client 1"                  # Human-readable name
+#     host: 192.168.0.100               # IP address preferred for reliability
+#     mac: 38:f7:cd:c5:87:6b
+#   - name: "client 2"
+#     host: hostname.local             # You can use a hostname if it resolves to a reachable interface
+#     mac: auto                        # MAC will be resolved using ARP at runtime
+
+clients: {{ vault_clients }}

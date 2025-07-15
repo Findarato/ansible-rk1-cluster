@@ -1,14 +1,19 @@
 ---
-- hosts: all
-  gather_facts: yes
+- name: Ansible RK1 Cluster Setup
+  hosts: all
+  gather_facts: true
   user: ubuntu
   become: true
   tasks:
-    - name: fix systemd resolved
+    - name: Fix systemd resolved
       ansible.builtin.copy:
         src: resolved.conf
         dest: /etc/systemd/resolved.conf
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
       notify: reboot systemd
+
     - name: Create symlink for systemd resolved
       ansible.builtin.file:
         src: /run/systemd/resolve/resolv.conf
@@ -17,10 +22,10 @@
 
 
   roles:
-    # - role: apt-prep
-    #   vars:
-    #     apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
-    #   tags: apt, ubuntu
+    - role: update
+      vars:
+        apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
+      tags: apt, ubuntu
     # - role: geerlingguy.docker
     #   vars:
     #     docker_users:
@@ -33,7 +38,7 @@
     - role: keepalive
       tags: keepalive
       vars:
-        keepapive_vip:
+        keepalive_ip:
           - 10.1.1.35
   vars_files:
     - main.vault.yml

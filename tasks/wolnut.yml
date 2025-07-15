@@ -1,0 +1,45 @@
+---
+# Started from the original playbook for Janitor
+# Created by: Joseph Harry
+# Date: 2025-07-15
+# Wolnut
+# https://github.com/hardwarehaven/wolnut
+# but in Docker Swarm
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    state: 'directory'
+    owner: 'ubuntu'
+    group: 'ubuntu'
+    mode: '0755'
+  loop:
+    - 'wolnut_data'
+  loop_control:
+    loop_var: 'dir'
+
+- name: 'Place files for Wolnut'
+  ansible.builtin.template:
+    src: 'wolnut/config.yaml.j2'
+    dest: "{{ docker_data_dir }}/wolnut_data/config.yaml"
+    owner: 'ubuntu'
+    group: 'ubuntu'
+    mode: '0755'
+
+- name: 'Deploy wolnut'
+  community.docker.docker_swarm_service:
+    name: 'wolnut'
+    image: "hardwarehaven/wolnut:latest"
+    force_update: true
+    mounts:
+      - source: "{{ docker_data_dir }}/wolnut_data/config.yaml"
+        target: '/config/config.yaml'
+        type: 'bind'
+    mode: 'replicated'
+    # replicas: 2
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.role == worker'

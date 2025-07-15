@@ -1,0 +1,3 @@
+---
+# defaults file for roles/apt-prep
+update_apt_proxy_path: http://apt-cache-ng.local:3142/
