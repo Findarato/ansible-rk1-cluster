@@ -1,6 +1,6 @@
 ---
 # handlers file for roles/apt-prep
-- name: restart_keepalived
-  service:
+- name: Restart_keepalived
+  ansible.builtin.service:
     name: keepalived
     state: restarted
