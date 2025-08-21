@@ -1,0 +1,14 @@
+---
+# Adding my own monitoring software in.
+roles:
+  # - name: geerlingguy.repo-epel
+  #   version: "3.1.1"
+  # - name: geerlingguy.ntp
+  - name: geerlingguy.docker
+    version: "7.0.1"
+  - name: geerlingguy.pip
+  # - name: acimadamore.raspberry_pi
+
+collections:
+  - name: community.docker
+  - name: community.general

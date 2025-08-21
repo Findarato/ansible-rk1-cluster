@@ -1,35 +1,40 @@
 ---
+# File: deploy.yml
+
 - name: Deploy Docker Swarm Services
   hosts: rk1_main
-  gather_facts: false
+  gather_facts: true
   user: ubuntu
   become: true
   tasks:
-    # - name: Setup janitor
-    #   ansible.builtin.include_tasks: tasks/janitor.yml
-    # - name: Setup Traffic
-    #   ansible.builtin.include_tasks: tasks/traefik.yml
-    #   vars:
-    #     traefik_selfsign: false
-    # - name: Setup portainer
-    #   ansible.builtin.include_tasks: tasks/portainer.yml
+    - name: Setup janitor
+      ansible.builtin.include_tasks: tasks/janitor.yml
+    - name: Setup Traffic
+      ansible.builtin.include_tasks: tasks/traefik.yml
+      vars:
+        traefik_selfsign: false
+    - name: Setup portainer
+      ansible.builtin.include_tasks: tasks/portainer.yml
     # - name: Setup apt-cacher
     #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
-    # - name: Setup pihole
-    #   ansible.builtin.include_tasks: tasks/pihole.yml
-    # - name: Setup apt-cacher-ng
-    #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
+    - name: Setup pihole
+      ansible.builtin.include_tasks: tasks/pihole.yml
+    - name: Setup apt-cacher-ng
+      ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     # - name: Setup 'isp-pollution'
     #   ansible.builtin.include_tasks: tasks/isp-pollution.yml
-    # - name: Setup Discount Bandit
-    #   ansible.builtin.include_tasks: tasks/discount-bandit.yml
-    #   tags: [discount-bandit]
-    # - name: Setup Change Detection
-    #   ansible.builtin.include_tasks: tasks/changedetection.yml
-    #   tags: [changedetection]
+    - name: Setup Discount Bandit
+      ansible.builtin.include_tasks: tasks/discount-bandit.yml
+      tags: [discount-bandit]
+    - name: Setup Change Detection
+      ansible.builtin.include_tasks: tasks/changedetection.yml
+      tags: [changedetection]
     - name: Setup Wolnut
       ansible.builtin.include_tasks: tasks/wolnut.yml
       tags: [wolnut]
+    - name: Setup ROMM
+      ansible.builtin.include_tasks: tasks/romm.yml
+      tags: [romm]
 
 # Run basic hosts setup
     - name: Add telegraf user to Docker Group
@@ -39,7 +44,6 @@
         append: true
       notify:
         - Restart telegraf
-
 
   roles:
     - role: geerlingguy.pip
@@ -61,3 +65,4 @@
   vars_files:
     - main.yml
     - main.vault.yml
+

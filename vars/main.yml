@@ -41,4 +41,7 @@ changedetection_app_name: changedetection
 changedetection_release: 'latest'                       # What version of the container to use
 
 
+#ROMM
+romm_app_name: romm
+
 dns_servers: ['10.1.1.1', '10.1.1.6']

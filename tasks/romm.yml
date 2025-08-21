@@ -1,0 +1,137 @@
+---
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'romm_network'
+    driver: 'overlay'
+  tags:
+    - romm
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ item }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0750'
+    state: 'directory'
+  with_items:
+    - 'romm_config'
+    - 'romm_data'
+    - 'romm_data/resources'
+    - 'romm_data/assets'
+    - 'romm_data/redis-data'
+    - 'romm_config/mariadb'
+  tags:
+    - romm
+
+- name: 📺 Create NFS mount ROMS
+  community.docker.docker_volume:
+    name: romm_library
+    state: present
+    driver: local
+    recreate: options-changed
+    driver_options:
+      type: nfs
+      o: "addr=10.1.1.7,rw"
+      device: :/mnt/Dedicated/Storage/Games/Roms/
+  tags:
+    - romm
+
+- name: 'Remove Romm-db'
+  community.docker.docker_swarm_service:
+    name: 'romm-db'
+    state: absent
+  tags:
+    - romm
+
+- name: 'Deploy Romm DB'
+  community.docker.docker_swarm_service:
+    name: 'romm-db'
+    image: lscr.io/linuxserver/mariadb:latest
+    env:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - MYSQL_ROOT_PASSWORD="{{ vault_romm_db_root_password }}" # Use a unique, secure password
+      - MYSQL_DATABASE=romm
+      - MYSQL_USER=romm-user
+      - MYSQL_PASSWORD="{{ vault_romm_db_password }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/romm_config/mariadb"
+        target: '/config'
+        type: 'bind'
+    networks:
+      - 'romm_network'
+    # healthcheck:
+    #   test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+    #   start_period: 30s
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    # publish:
+    #   - published_port: 3306
+    #     target_port: 3306
+    labels:
+      traefik.enable: "false"
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  tags:
+    - romm
+
+- name: 'Remove Romm'
+  community.docker.docker_swarm_service:
+    name: 'romm'
+    state: absent
+  tags:
+    - romm
+
+- name: 'Deploy Romm'
+  community.docker.docker_swarm_service:
+    name: 'romm'
+    image: rommapp/romm:latest
+    # state: absent
+    env:
+      - DB_HOST=romm-db
+      - DB_NAME=romm # Should match MARIADB_DATABASE in mariadb
+      - DB_USER=romm-user # Should match MARIADB_USER in mariadb
+      - DB_PASSWD="{{ vault_romm_db_password }}" # Should match MARIADB_PASSWORD in mariadb
+      - ROMM_AUTH_SECRET_KEY= "{{ vault_romm_secret_key }}" # Generate a key with `openssl rand -hex 32`
+      - SCREENSCRAPER_USER="{{ vault_romm_screenscrapper.user }}" # These are the recommended metadata providers
+      - SCREENSCRAPER_PASSWORD="{{ vault_romm_screenscrapper.pass }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#screenscraper
+      - RETROACHIEVEMENTS_API_KEY="{{ vault_romm_retroachievements_api }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#retroachievements
+      - STEAMGRIDDB_API_KEY="{{ vault_romm_steamgriddb_api }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#steamgriddb
+      - HASHEOUS_API_ENABLED=true # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#hasheous
+    mounts:
+      - source: "{{ docker_data_dir }}/romm_data/resources"
+        target: '/romm/resources'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/romm_data/assets"
+        target: '/romm/assets'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/romm_config"
+        target: '/romm/config'
+        type: 'bind'
+      - source: "romm_library" ## Fix this to be NFS mount to .. the ROMS
+        target: '/romm/library'
+        type: 'volume'
+      - source: "{{ docker_data_dir }}/romm_data/redis-data"
+        target: '/romm/redis-data'
+        type: 'bind'
+    networks:
+      - 'traefik_backend'
+      - 'romm_network'
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.romm.rule: "Host(`{{ romm_app_name }}.{{ traefik_domain_rk1 }}`)"
+      traefik.http.routers.romm.tls: "true"
+      traefik.http.routers.romm.entrypoints: websecure
+      traefik.http.services.romm.loadbalancer.server.port: '8080'
+      traefik.http.routers.romm.tls.domains[0].main: "*.mcharryville.space"
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  tags:
+    - romm

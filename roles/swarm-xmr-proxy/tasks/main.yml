@@ -37,9 +37,9 @@
       - "PUID=1000"
       - "PGID=1000"
       - "TZ=America/Chicago"
-      - "MASTER_URL=https://smokeping.rk1.mcharryville.space" #optional
-      - "SHARED_SECRET=password" #optional
-      - "CACHE_DIR=/tmp" #optional
+      - "MASTER_URL=https://smokeping.rk1.mcharryville.space" # optional
+      - "SHARED_SECRET=password" # optional
+      - "CACHE_DIR=/tmp" # optional
     mounts:
       - source: "{{ docker_data_dir }}/smokeping-config"
         target: '/config'
