@@ -1,0 +1,35 @@
+---
+- hosts: rk1_main
+  gather_facts: no
+  user: ubuntu
+  become: true
+  tasks:
+    - name: 'Deploy pollution Generator'
+      community.docker.docker_swarm_service:
+        name: 'isp-pollution'
+        # image: "hvalev/isp-pollution"
+        image: "mq83/noisy"
+        force_update: true
+        env:
+        networks:
+          - 'traefik_backend'
+        mode: 'replicated'
+        replicas: 16
+      tags:
+        - polluting
+        - start_polluting
+
+    - name: 'Remove pollution Generator'
+      community.docker.docker_swarm_service:
+        name: 'isp-pollution'
+        image: "mq83/noisy"
+        force_update: true
+        env:
+        networks:
+          - 'traefik_backend'
+        mode: 'replicated'
+        replicas: 0
+      no_log: false
+      tags:
+        - polluting
+        - stop_polluting

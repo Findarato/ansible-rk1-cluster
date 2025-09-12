@@ -4,8 +4,17 @@
   user: ubuntu
   become: true
   tasks:
+    - name: Start Mining tasks
+      ansible.builtin.systemd_service:
+        name: miner.service
+        state: started
+        enabled: true
+      tags:
+        - "start_mining"
     - name: Stop Mining tasks
       ansible.builtin.systemd_service:
         name: miner.service
         state: stopped
         enabled: false
+      tags:
+        - "stop_mining"
