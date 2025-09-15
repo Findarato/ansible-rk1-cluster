@@ -9,7 +9,7 @@ update_all:
     distrobox-enter -H ansible -- ansible-playbook infrastructure.yml -i hosts/production.yml
 
 deploy tag:
-    distrobox-enter -H ansible -- ansible-playbook deploy.yml -i hosts/production.yml
+    distrobox-enter -H ansible -- ansible-playbook deploy.yml -i hosts/production.yml --tags {{tag}}
 
 deploy_all:
     distrobox-enter -H ansible -- ansible-playbook deploy.yml -i hosts/production.yml
@@ -17,14 +17,12 @@ deploy_all:
 start_mining:
     distrobox-enter -H ansible -- ansible-playbook mining.yml -i hosts/production.yml --tags start_mining
 
-
 stop_mining:
     distrobox-enter -H ansible -- ansible-playbook mining.yml -i hosts/production.yml --tags stop_mining
 
 
 start_polluting:
     distrobox-enter -H ansible -- ansible-playbook polluting.yml -i hosts/production.yml --tags start_polluting
-
 
 stop_polluting:
     distrobox-enter -H ansible -- ansible-playbook polluting.yml -i hosts/production.yml --tags stop_polluting

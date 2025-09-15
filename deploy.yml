@@ -1,5 +1,22 @@
 ---
-# File: deploy.yml
+
+## Title: deploy.yml
+## Description: Deploy Docker Swarm Services
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-09-15 09:37:44
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 - name: Deploy Docker Swarm Services
   hosts: rk1_main
@@ -13,16 +30,15 @@
       ansible.builtin.include_tasks: tasks/traefik.yml
       vars:
         traefik_selfsign: false
+      tags: [traefik,whoami]
     - name: Setup portainer
       ansible.builtin.include_tasks: tasks/portainer.yml
-    # - name: Setup apt-cacher
-    #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
     - name: Setup pihole
+      tags: [pihole]
       ansible.builtin.include_tasks: tasks/pihole.yml
     - name: Setup apt-cacher-ng
       ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
-    # - name: Setup 'isp-pollution'
-    #   ansible.builtin.include_tasks: tasks/isp-pollution.yml
+      tags: [apt-cacher-ng]
     - name: Setup Discount Bandit
       ansible.builtin.include_tasks: tasks/discount-bandit.yml
       tags: [discount-bandit]
@@ -35,6 +51,12 @@
     - name: Setup ROMM
       ansible.builtin.include_tasks: tasks/romm.yml
       tags: [romm]
+    - name: Setup Smokeping
+      ansible.builtin.include_tasks: tasks/smokeping.yml
+      tags: [smokeping]
+    - name: Setup Homepage
+      ansible.builtin.include_tasks: tasks/homepage.yml
+      tags: [homepage]
 
 # Run basic hosts setup
     - name: Add telegraf user to Docker Group

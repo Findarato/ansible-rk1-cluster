@@ -1,7 +1,7 @@
 ---
 
-## Title: tasks/smokeping.yml
-## Description: Start/Stop Smokeping Service
+## Title: tasks/homepage.yml
+## Description: Start/Stop homepage Service
 ## Author: Joseph Harry <findarato@gmail.com>
 ## Copyright: Joseph Harry <findarato@gmail.com>
 ## Date: 2025-09-15 09:38:42
@@ -21,10 +21,10 @@
 
 - name: 'Create network'
   community.docker.docker_network:
-    name: 'smokeping_backend'
+    name: 'homepage_backend'
     driver: 'overlay'
   tags:
-    - smokeping
+    - homepage
 
 - name: 'Create directory for container data'
   ansible.builtin.file:
@@ -34,63 +34,65 @@
     mode: '0755'
     state: 'directory'
   loop:
-    - 'smokeping-config'
-    - 'smokeping-data'
+    - 'homepage-config'
+    - 'homepage-data'
+    - 'homepage-data/images'
   loop_control:
     loop_var: 'dir'
 
-- name: 'Remove smokeping'
+- name: 'Remove homepage'
   community.docker.docker_swarm_service:
-    name: 'smokeping'
+    name: 'homepage'
     state: absent
     replicas: 0
 
-- name: 'Deploy smokeping'
+- name: 'Deploy homepage'
   community.docker.docker_swarm_service:
-    name: 'smokeping'
-    image: "lscr.io/linuxserver/smokeping:{{ smokeping_release }}"
-    hostname: smokeping-rk1
+    name: 'homepage'
+    image: "ghcr.io/gethomepage/homepage:{{ homepage_release }}"
+    hostname: homepage
     force_update: true
     env:
-      - "ServerName=smokeping"
+      - "ServerName=homepage"
       - "PUID=1000"
       - "PGID=1000"
       - "TZ=America/Chicago"
-      # - "MASTER_URL=https://smokeping.rk1.mcharryville.space" #optional
-      - "SHARED_SECRET=password" #optional
-      - "CACHE_DIR=/tmp" #optional
+      - "HOMEPAGE_ALLOWED_HOSTS={{ homepage_app_name }}.{{ traefik_domain_rk1 }}"
     mounts:
-      - source: "{{ docker_data_dir }}/smokeping-config"
-        target: '/config'
+      - source: "{{ docker_data_dir }}/homepage-config"
+        target: '/app/config/'
         type: 'bind'
-      - source: "{{ docker_data_dir }}/smokeping-data"
-        target: '/data'
+      - source: "{{ docker_data_dir }}/homepage-data/images"
+        target: '/app/public/images/'
         type: 'bind'
-      - source: "/etc/localtime"
-        target: '/etc/localtime'
+      - source: '/var/run/docker.sock'
+        target: '/var/run/docker.sock'
         type: 'bind'
         readonly: true
     networks:
-      - 'smokeping_backend'
+      - 'homepage_backend'
       - 'traefik_backend'
     publish:
     labels:
       traefik.enable: "true"
-      traefik.http.routers.smokeping.rule: Host(`{{ smokeping_app_name }}.{{ traefik_domain_rk1 }}`)
-      traefik.http.routers.smokeping.tls: "true"
-      traefik.http.routers.smokeping.entrypoints: websecure
-      traefik.http.services.smokeping.loadbalancer.server.port: "80"
+      traefik.http.routers.homepage.rule: Host(`{{ homepage_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.homepage.tls: "true"
+      traefik.http.routers.homepage.entrypoints: websecure
+      traefik.http.services.homepage.loadbalancer.server.port: "3000"
     mode: 'replicated'
-    replicas: 1
+    replicas: 2
     restart_config:
       condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
   no_log: "{{ not docker_service_debug }}"
   tags:
-    - smokeping
-    - smokeping_deploy
-    - smokeping_config
-    - smokeping_network
-    - smokeping_service
-    - smokeping_data
-    - smokeping_volume
-    - smokeping_container
+    - homepage
+    - homepage_deploy
+    - homepage_config
+    - homepage_network
+    - homepage_service
+    - homepage_data
+    - homepage_volume
+    - homepage_container

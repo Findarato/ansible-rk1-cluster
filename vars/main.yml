@@ -41,6 +41,10 @@ changedetection_app_name: changedetection
 changedetection_release: 'latest'                       # What version of the container to use
 
 
+homepage_app_name: homepage
+homepage_release: 'latest'                       # What version of the container to use
+
+
 #ROMM
 romm_app_name: romm
 
