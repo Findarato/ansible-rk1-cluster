@@ -1,5 +1,25 @@
 ---
 
+## Title: /workspaces/ansible-rk1-cluster/vars/main.yml
+## Description: All variables for the playbooks
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-09-24 10:16:31
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+dns_servers: ['10.1.1.1', '10.1.1.6']
+
 docker_service_debug: true                        # Enable to see sensitive output when deploying services
 
 docker_edition: 'ce'
@@ -14,8 +34,6 @@ restart_condition: 'any'
 traefik_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
 traefik_domain: 'mcharryville.space'              # Subdomain to put all services under
 traefik_selfsign: false                           # Selfsign the used SSL certificate
-# traefik_upstream_proxy: '10.0.0.80'             # Upstream proxy to this traefik
-# traefik_version: 'latest'
 traefik_version: '2.11'
 
 portainer_app_name: 'portainer'                   # Service name for Portainer (portainer.dckr.example.com)
@@ -29,23 +47,33 @@ pihole_release: 'latest'
 pihole_app_name: pihole
 orbital_sync_release: 1
 
-
+# Smokeping
 smokeping_app_name: smokeping
 smokeping_release: 'latest'                       # What version of the container to use
 
 discountbandit_app_name: discountbandit
-discountbandit_release: 'v3.6'                       # What version of the container to use
+discountbandit_release: 'v3.6'                     # What version of the container to use
 
-
+# Change Detection
 changedetection_app_name: changedetection
-changedetection_release: 'latest'                       # What version of the container to use
+changedetection_release: 'latest'                  # What version of the container to use
 
-
+# Homepage gethomepage.io
 homepage_app_name: homepage
-homepage_release: 'latest'                       # What version of the container to use
-
+homepage_release: 'latest'                         # What version of the container to use
 
 #ROMM
 romm_app_name: romm
 
-dns_servers: ['10.1.1.1', '10.1.1.6']
+#N8N
+n8n_app_name: n8n
+n8n_release: '1.112.4'                             # What version of the container to use
+n8n_postgress_release: 16-trixie
+n8n_db_host: 'postgres_host'
+n8n_db_port: 5432
+n8n_db_user: 'n8n'
+n8n_db_name: 'n8n'
+# Vault things are in the vault
+n8n_db_password: "{{ vault_n8n_db_password }}"
+n8n_db_non_root_user: "{{ vault_n8n_db_non_root_user }}"
+

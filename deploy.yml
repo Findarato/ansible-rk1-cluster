@@ -1,5 +1,4 @@
 ---
-
 ## Title: deploy.yml
 ## Description: Deploy Docker Swarm Services
 ## Author: Joseph Harry <findarato@gmail.com>
@@ -30,7 +29,7 @@
       ansible.builtin.include_tasks: tasks/traefik.yml
       vars:
         traefik_selfsign: false
-      tags: [traefik,whoami]
+      tags: [traefik, whoami]
     - name: Setup portainer
       ansible.builtin.include_tasks: tasks/portainer.yml
     - name: Setup pihole
@@ -48,17 +47,18 @@
     - name: Setup Wolnut
       ansible.builtin.include_tasks: tasks/wolnut.yml
       tags: [wolnut]
-    - name: Setup ROMM
-      ansible.builtin.include_tasks: tasks/romm.yml
-      tags: [romm]
+    # - name: Setup ROMM
+    #   ansible.builtin.include_tasks: tasks/romm.yml
+    #   tags: [romm]
     - name: Setup Smokeping
       ansible.builtin.include_tasks: tasks/smokeping.yml
       tags: [smokeping]
     - name: Setup Homepage
       ansible.builtin.include_tasks: tasks/homepage.yml
       tags: [homepage]
-
-# Run basic hosts setup
+    - name: Setup n8n
+      ansible.builtin.include_tasks: tasks/n8n.yml
+      tags: [n8n]
     - name: Add telegraf user to Docker Group
       ansible.builtin.user:
         name: telegraf
@@ -66,25 +66,10 @@
         append: true
       notify:
         - Restart telegraf
-
+      tags: [telegraf]
   roles:
     - role: geerlingguy.pip
       tags: [python, pip]
-    # - role: swarm-smokeping
-    #   tags: [ smokeping ]
-  #   - role: apt-prep
-  #     vars:
-  #       apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
-  #     tags: apt, ubuntu
-  #   - role: gluster-docker
-  #     tags: gluster, docker
-    # - role: geerlingguy.docker
-    #   vars:
-    #     docker_users:
-    #     - ubuntu
-    #   tags: docker
-
   vars_files:
     - main.yml
     - main.vault.yml
-

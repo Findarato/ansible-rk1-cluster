@@ -39,12 +39,16 @@
     - 'homepage-data/images'
   loop_control:
     loop_var: 'dir'
+  tags:
+    - homepage
 
 - name: 'Remove homepage'
   community.docker.docker_swarm_service:
     name: 'homepage'
     state: absent
     replicas: 0
+  tags:
+    - homepage
 
 - name: 'Deploy homepage'
   community.docker.docker_swarm_service:

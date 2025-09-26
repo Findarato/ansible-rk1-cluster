@@ -18,7 +18,6 @@
 ## with this program; if not, write to the Free Software Foundation, Inc.
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-
 - name: 'Create network'
   community.docker.docker_network:
     name: 'traefik_backend'
@@ -147,9 +146,6 @@
         target_port: 53
         protocol: "udp"
         mode: "host"
-    placement:
-      constraints:
-        - 'node.role == manager'
     user: null
 
 - name: 'Deploy whoami'
@@ -170,35 +166,32 @@
     replicas: 8
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.role == worker'
   no_log: "{{ not docker_service_debug }}"
 
-- name: install visualizer
-  docker_swarm_service:
-    name: visualizer
-    # image: dockersamples/visualizer # X68
-    image: alexellis2/visualizer-arm:latest #ARM
-    state: absent
-    force_update: true
-    networks:
-      - 'traefik_backend'
-    mounts:
-      - source: '/var/run/docker.sock'
-        target: '/var/run/docker.sock'
-        type: 'bind'
-        readonly: true
-    restart_config:
-      condition: any
-      delay: 10s
-      # max_attempts: 5
-    labels:
-      traefik.enable: "true"
-      traefik.swarmmode: "true"
-      traefik.docker.network: "traefik_backend"
-      traefik.http.routers.visu-public-http.rule: "Host(`visualizer.{{ traefik_domain_rk1 }}`)"
-      traefik.http.routers.visu-public-http.entrypoints: "http"
-      traefik.http.services.visu-public.loadbalancer.server.port: "8080"
-    placement:
-      constraints: "node.role==manager"
+# - name: install visualizer
+#   docker_swarm_service:
+#     name: visualizer
+#     # image: dockersamples/visualizer # X68
+#     image: alexellis2/visualizer-arm:latest #ARM
+#     state: absent
+#     force_update: true
+#     networks:
+#       - 'traefik_backend'
+#     mounts:
+#       - source: '/var/run/docker.sock'
+#         target: '/var/run/docker.sock'
+#         type: 'bind'
+#         readonly: true
+#     restart_config:
+#       condition: any
+#       delay: 10s
+#       # max_attempts: 5
+#     labels:
+#       traefik.enable: "true"
+#       traefik.swarmmode: "true"
+#       traefik.docker.network: "traefik_backend"
+#       traefik.http.routers.visu-public-http.rule: "Host(`visualizer.{{ traefik_domain_rk1 }}`)"
+#       traefik.http.routers.visu-public-http.entrypoints: "http"
+#       traefik.http.services.visu-public.loadbalancer.server.port: "8080"
+#     placement:
+#       constraints: "node.role==manager"

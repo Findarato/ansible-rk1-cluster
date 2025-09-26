@@ -78,9 +78,6 @@
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.role == worker'
   no_log: "{{ not docker_service_debug }}"
 
 # - name: 'Deploy orbital-sync'

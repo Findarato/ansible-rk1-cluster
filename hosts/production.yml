@@ -6,10 +6,13 @@ all:
         rk1_main:
           hosts:
             rk1-cluster01.mcharryville.space:
+            rk1-cluster02.mcharryville.space:
         rk1_secondary:
           hosts:
             rk1-cluster02.mcharryville.space:
             rk1-cluster03.mcharryville.space:
+            vars:
+              install_nfs_server: true
             rk1-cluster04.mcharryville.space:
   vars:
     ansible_python_interpreter: "/usr/bin/python3"

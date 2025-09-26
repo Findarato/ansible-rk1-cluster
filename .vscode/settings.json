@@ -1,5 +1,6 @@
 {
+    "ansible.python.interpreterPath": "/usr/bin/python",
     "yaml.schemas": {
-        "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json": "file:///home/joe/Documents/src/Ansible/ansible-rk1-cluster/tasks/traefik.yml"
+        "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": "file:///var/home/joe/Documents/src/Ansible/ansible-rk1-cluster/tasks/traefik.yml"
     }
 }

@@ -1,0 +1,165 @@
+---
+
+## Title: n8n.yml
+## Description: Start/Stop n8n Service
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-09-24 08:48:54
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'n8n_backend'
+    driver: 'overlay'
+  tags:
+    - n8n
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0755'
+    state: 'directory'
+  loop:
+    - 'n8n-data'
+    - 'n8n-data/postgres'
+    - 'n8n-data/postgres/data'
+  loop_control:
+    loop_var: 'dir'
+  tags:
+    - n8n
+
+- name: Copy postgress files
+  ansible.builtin.copy:
+    src: n8n/postgres/init-data.sh
+    dest: "{{ docker_data_dir }}/n8n-data/postgres/init-data.sh"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0640'
+  tags:
+    - n8n
+
+- name: 'Remove n8n'
+  community.docker.docker_swarm_service:
+    name: 'n8n'
+    state: absent
+    replicas: 0
+  tags:
+    - n8n
+- name: 'Remove n8n database'
+  community.docker.docker_swarm_service:
+    name: "{{ item }}"
+    state: absent
+    replicas: 0
+  with_items:
+    - n8n-db
+    - n8n_db
+  tags:
+    - n8n
+
+
+- name: 'Deploy n8n_database'
+  community.docker.docker_swarm_service:
+    name: 'n8n-db'
+    image: "postgres:{{ n8n_postgress_release }}"
+    hostname: n8n_db
+    force_update: true
+    env:
+      - "POSTGRES_USER={{ n8n_db_user }}"
+      - "POSTGRES_PASSWORD={{ n8n_db_password | default('superpassword') }}"
+      - "POSTGRES_DB={{ n8n_db_name }}"
+      - "POSTGRES_NON_ROOT_USER={{ n8n_db_non_root_user }}"
+      - "POSTGRES_NON_ROOT_PASSWORD={{ n8n_db_non_root_password | default('superpassword') }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/n8n-data/postgres/data"
+        target: '/var/lib/postgresql/data'
+        type: 'bind'
+    networks:
+      - 'n8n_backend'
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+  no_log: "{{ not docker_service_debug }}"
+  tags:
+    - n8n
+    - n8n_deploy
+    - n8n_database
+
+
+- name: 'Deploy n8n'
+  community.docker.docker_swarm_service:
+    name: 'n8n'
+    image: "docker.n8n.io/n8nio/n8n:{{ n8n_release }}"
+    hostname: n8n
+    force_update: true
+    env:
+      - "N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true"
+      - "N8N_RUNNERS_ENABLED=true"
+      - "DB_TYPE=postgresdb"
+      - "DB_POSTGRESDB_HOST=n8n-db"
+      - "DB_POSTGRESDB_DATABASE={{ n8n_db_name }}"
+      - "DB_POSTGRESDB_PORT={{ n8n_db_port }}"
+      - "DB_POSTGRESDB_USER={{ n8n_db_user }}"
+      - "DB_POSTGRESDB_PASSWORD={{ n8n_db_password | default('superpassword')}}"
+      - "TZ=America/Chicago"
+      - "N8N_HOST={{ n8n_app_name }}.{{ traefik_domain_rk1 }}"
+      - "N8N_PORT=5678"
+      - "N8N_PROTOCOL=https"
+      - "N8N_RUNNERS_ENABLED=true"
+        # metrics
+      - "N8N_METRICS=true"
+        # healthz
+      - "QUEUE_HEALTH_CHECK_ACTIVE=true"
+      - "NODE_ENV=production"
+      - "WEBHOOK_URL=https://{{ n8n_app_name }}.{{ traefik_domain_rk1 }}/"
+    mounts:
+      - source: "{{ docker_data_dir }}/n8n-data"
+        target: '/home/node/.n8n'
+        type: 'bind'
+    networks:
+      - 'n8n_backend'
+      - 'traefik_backend'
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.n8n.rule: Host(`{{ n8n_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.n8n.tls: "true"
+      traefik.http.routers.n8n.entrypoints: websecure
+      traefik.http.services.n8n.loadbalancer.server.port: "5678"
+      traefik.http.middlewares.n8n.headers.SSLRedirect: "true"
+      traefik.http.middlewares.n8n.headers.STSSeconds: "315360000"
+      traefik.http.middlewares.n8n.headers.browserXSSFilter: "true"
+      traefik.http.middlewares.n8n.headers.contentTypeNosniff: "true"
+      traefik.http.middlewares.n8n.headers.forceSTSHeader: "true"
+      traefik.http.middlewares.n8n.headers.SSLHost: "{{ traefik_domain_rk1 }}"
+      traefik.http.middlewares.n8n.headers.STSIncludeSubdomains: "true"
+      traefik.http.middlewares.n8n.headers.STSPreload: "true"
+      # traefik.http.routers.n8n.middlewares: n8n@docker
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+  no_log: "{{ not docker_service_debug }}"
+  tags:
+    - n8n
+    - n8n_deploy
+

@@ -40,6 +40,3 @@
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.role == worker'
