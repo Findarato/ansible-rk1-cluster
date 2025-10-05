@@ -1,0 +1,100 @@
+---
+
+## Title: /workspaces/ansible-rk1-cluster/tasks/gatus.yml
+## Description: Start/Stop gatus container
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-09-26 09:00:24
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'gatus_backend'
+    driver: 'overlay'
+  tags:
+    - gatus
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0755'
+    state: 'directory'
+  loop:
+    - 'gatus-config'
+    - 'gatus-data'
+  loop_control:
+    loop_var: 'dir'
+  tags:
+    - gatus
+
+- name: 'Remove gatus'
+  community.docker.docker_swarm_service:
+    name: 'gatus'
+    state: absent
+    replicas: 0
+  tags:
+    - gatus
+
+- name: 'Deploy gatus'
+  community.docker.docker_swarm_service:
+    name: 'gatus'
+    image: "ghcr.io/getgatus/gatus:{{ gatus_release }}"
+    hostname: gatus
+    force_update: true
+    env:
+      - "ServerName=gatus"
+      - "PUID=1000"
+      - "PGID=1000"
+      - "TZ=America/Chicago"
+      - "gatus_ALLOWED_HOSTS={{ gatus_app_name }}.{{ traefik_domain_rk1 }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/gatus-config"
+        target: '/app/config/'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/gatus-data/images"
+        target: '/app/public/images/'
+        type: 'bind'
+      - source: '/var/run/docker.sock'
+        target: '/var/run/docker.sock'
+        type: 'bind'
+        readonly: true
+    networks:
+      - 'gatus_backend'
+      - 'traefik_backend'
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.gatus.rule: Host(`{{ gatus_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.gatus.tls: "true"
+      traefik.http.routers.gatus.entrypoints: websecure
+      traefik.http.services.gatus.loadbalancer.server.port: "3000"
+    mode: 'replicated'
+    replicas: 2
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+  no_log: "{{ not docker_service_debug }}"
+  tags:
+    - gatus
+    - gatus_deploy
+    - gatus_config
+    - gatus_network
+    - gatus_service
+    - gatus_data
+    - gatus_volume
+    - gatus_container
