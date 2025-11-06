@@ -5,6 +5,25 @@
   user: ubuntu
   become: true
   pre_tasks:
+    - name: Create key for user ubuntu
+      ansible.builtin.user:
+        name: ubuntu
+        shell: /bin/bash
+        state: present
+        create_home: yes
+        generate_ssh_key: yes
+        ssh_key_type: ed25519
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_ed25519
+    - name: Get authorized keys
+      ansible.builtin.slurp:
+        src: /home/ubuntu/.ssh/id_ed25519.pub
+      register: slurped_key
+
+    - name: Set authorized key for user ubuntu
+      ansible.builtin.debug: msg="{{ slurped_key['content'] | b64decode }}"
+  tasks:
+
     # - name: Fix systemd resolved
     #   ansible.builtin.copy:
     #     src: resolved.conf
@@ -20,18 +39,32 @@
     #     dest: /etc/resolv.conf
     #     state: link
 
-    # - name: Install NFS server
-    #   ansible.builtin.apt:
-    #     name: nfs-kernel-server
-    #     state: present
-    #     update_cache: yes
-    #   when: inventory_hostname == "rk1-cluster03.mcharryville.space"
+    - name: Install NFS server
+      ansible.builtin.apt:
+        name: nfs-kernel-server
+        state: present
+        update_cache: yes
+      when: inventory_hostname == "rk1-cluster03.mcharryville.space"
 
-    # - name: Install NFS client
-    #   ansible.builtin.apt:
-    #     name: nfs-common
-    #     state: present
-    #     update_cache: no
+    - name: Install NFS client
+      ansible.builtin.apt:
+        name: nfs-common
+        state: present
+        update_cache: no
+
+    # - name: 'Create directory for NFS'
+    #   ansible.builtin.file:
+    #     path: "/mnt/nfs/{{ dir }}"
+    #     owner: '1000'
+    #     group: '1001'
+    #     mode: '0775'
+    #     state: 'directory'
+    #   loop:
+    #     - 'backup'
+    #     - 'storage'
+    #     - 'torrents'
+    #   loop_control:
+    #     loop_var: 'dir'
 
     - name: Mount NFS partitions
       ansible.posix.mount:
@@ -39,35 +72,6 @@
         path: "/mnt/nfs/{{ nfs_directory }}"
         opts: "x-systemd.automount,nofail"
         boot: false
-        state: unmounted
-        fstype: nfs
-      with_items: 
-      - storage
-      - torrents
-      - backup
-      loop_control:
-        loop_var: 'nfs_directory'
-
-    - name: 'Create directory for NFS'
-      ansible.builtin.file:
-        path: "/mnt/nfs/{{ dir }}"
-        owner: '1000'
-        group: '1001'
-        mode: '0775'
-        state: 'directory'
-      loop:
-        - 'backup'
-        - 'storage'
-        - 'torrents'
-      loop_control:
-        loop_var: 'dir'
-
-    - name: Mount NFS partitions
-      ansible.posix.mount:
-        src: "rk1-cluster03:/mnt/{{ nfs_directory }}"
-        path: "/mnt/nfs/{{ nfs_directory }}"
-        opts: "soft,nofail"
-        boot: true
         state: mounted
         fstype: nfs
       with_items: 
@@ -76,11 +80,29 @@
       - backup
       loop_control:
         loop_var: 'nfs_directory'
+
+    # - name: Mount NFS partitions
+    #   ansible.posix.mount:
+    #     src: "rk1-cluster03:/mnt/{{ nfs_directory }}"
+    #     path: "/mnt/nfs/{{ nfs_directory }}"
+    #     opts: "soft,nofail"
+    #     boot: true
+    #     state: mounted
+    #     fstype: nfs
+    #   with_items: 
+    #   - storage
+    #   - torrents
+    #   - backup
+    #   loop_control:
+    #     loop_var: 'nfs_directory'
   roles:
-    - role: geerlingguy.pip
-      tags: [python, pip]
-    - role: geerlingguy.docker
-      tags: [docker, install]
+    # - role: geerlingguy.pip
+    #   tags: [python, pip]
+    #   vars: 
+    #     docker_users:
+    #       - ubuntu
+    # - role: geerlingguy.docker
+    #   tags: [docker, install]
     # - role: update
     #   vars:
     #     update_apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
@@ -93,6 +115,9 @@
     #   vars:
     #     keepalive_ip:
     #       - 10.1.1.35
+  vars:
+      pip_install_packages:
+      - name: docker
   vars_files:
     - main.vault.yml
     - main.yml

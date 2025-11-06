@@ -22,6 +22,7 @@
   community.docker.docker_network:
     name: 'gatus_backend'
     driver: 'overlay'
+    state: absent
   tags:
     - gatus
 
@@ -72,8 +73,7 @@
         type: 'bind'
         readonly: true
     networks:
-      - 'gatus_backend'
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"

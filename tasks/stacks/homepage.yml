@@ -1,0 +1,56 @@
+---
+
+## Title: tasks/homepage.yml
+## Description: Start/Stop homepage Service
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-09-15 09:38:42
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+- name: Deploy Homepage Stack
+  community.docker.docker_stack:
+    state: present
+    prune: true
+    name: Homepage
+    compose:
+      - version: '3.8'
+        services: # Define Homepage Services
+          homepage: # Deluge Container
+            image: "ghcr.io/gethomepage/homepage:{{ homepage_release }}"
+            deploy:
+              replicas: 1
+              update_config:
+                delay: 1s
+              restart_policy:
+                condition: on-failure
+            healthcheck:
+              test: ["CMD-SHELL", "curl --silent --fail localhost:3000|| exit 1"]
+              interval: 10s
+              timeout: 10s
+              retries: 3
+            networks:
+              - traefik_proxy # Connect to traefik for routing
+            labels:
+              traefik.enable: "true"
+              traefik.http.routers.homepage-stack.rule: Host(`{{ homepage_app_name }}.stack.{{ traefik_domain_rk1 }}`)
+              traefik.http.routers.homepage-stack.tls: "true"
+              traefik.http.routers.homepage-stack.entrypoints: websecure
+              traefik.http.services.homepage-stack.loadbalancer.server.port: "3000"
+        networks: # Define networks
+          traefik_proxy: # Connect to traefik for routing
+            external: true
+
+  tags:
+    - homepage-stack

@@ -3,6 +3,7 @@
   community.docker.docker_network:
     name: 'apt_cacher_backend'
     driver: 'overlay'
+    state: absent
 
 - name: Create NFS mount
   community.docker.docker_volume:
@@ -25,8 +26,7 @@
         target: '/var/cache/apt-cacher-ng'
         type: volume
     networks:
-      - 'apt_cacher_backend'
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"

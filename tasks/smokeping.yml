@@ -23,6 +23,7 @@
   community.docker.docker_network:
     name: 'smokeping_backend'
     driver: 'overlay'
+    state: absent
   tags:
     - smokeping
 
@@ -56,7 +57,6 @@
       - "PUID=1000"
       - "PGID=1000"
       - "TZ=America/Chicago"
-      # - "MASTER_URL=https://smokeping.rk1.mcharryville.space" #optional
       - "SHARED_SECRET=password" #optional
       - "CACHE_DIR=/tmp" #optional
     mounts:
@@ -71,8 +71,7 @@
         type: 'bind'
         readonly: true
     networks:
-      - 'smokeping_backend'
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"

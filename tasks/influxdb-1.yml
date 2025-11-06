@@ -1,7 +1,7 @@
 ---
 
-## Title: tasks/homepage.yml
-## Description: Start/Stop homepage Service
+## Title: tasks/smokeping.yml
+## Description: Start/Stop Smokeping Service
 ## Author: Joseph Harry <findarato@gmail.com>
 ## Copyright: Joseph Harry <findarato@gmail.com>
 ## Date: 2025-09-15 09:38:42
@@ -21,11 +21,10 @@
 
 - name: 'Create network'
   community.docker.docker_network:
-    name: 'homepage_backend'
+    name: 'influxdb_backend'
     driver: 'overlay'
-    state: absent
   tags:
-    - homepage
+    - influxdb
 
 - name: 'Create directory for container data'
   ansible.builtin.file:
@@ -35,69 +34,62 @@
     mode: '0755'
     state: 'directory'
   loop:
-    - 'homepage-config'
-    - 'homepage-data'
-    - 'homepage-data/images'
+    - 'influxdb-config'
+    - 'influxdb-data'
   loop_control:
     loop_var: 'dir'
-  tags:
-    - homepage
 
-- name: 'Remove homepage'
+- name: 'Remove influxdb'
   community.docker.docker_swarm_service:
-    name: 'homepage'
+    name: 'influxdb'
     state: absent
     replicas: 0
-  tags:
-    - homepage
-    - stop_all_services
 
-- name: 'Deploy homepage'
+- name: 'Deploy influxdb'
   community.docker.docker_swarm_service:
-    name: 'homepage'
-    image: "ghcr.io/gethomepage/homepage:{{ homepage_release }}"
-    hostname: homepage
+    name: 'influxdb'
+    image: "lscr.io/linuxserver/influxdb:{{ influxdb_release }}"
+    hostname: influxdb-rk1
     force_update: true
     env:
-      - "ServerName=homepage"
+      - "ServerName=influxdb"
       - "PUID=1000"
       - "PGID=1000"
       - "TZ=America/Chicago"
-      - "HOMEPAGE_ALLOWED_HOSTS={{ homepage_app_name }}.{{ traefik_domain_rk1 }}"
+      - "SHARED_SECRET=password" #optional
+      - "CACHE_DIR=/tmp" #optional
     mounts:
-      - source: "{{ docker_data_dir }}/homepage-config"
-        target: '/app/config/'
+      - source: "{{ docker_data_dir }}/influxdb-config"
+        target: '/config'
         type: 'bind'
-      - source: "{{ docker_data_dir }}/homepage-data/images"
-        target: '/app/public/images/'
+      - source: "{{ docker_data_dir }}/influxdb-data"
+        target: '/data'
         type: 'bind'
-      - source: '/var/run/docker.sock'
-        target: '/var/run/docker.sock'
+      - source: "/etc/localtime"
+        target: '/etc/localtime'
         type: 'bind'
         readonly: true
     networks:
-      - "{{ traefik_proxy_network }}"
+      - 'influxdb_backend'
+      - 'traefik_backend'
     publish:
     labels:
       traefik.enable: "true"
-      traefik.http.routers.homepage.rule: Host(`{{ homepage_app_name }}.{{ traefik_domain_rk1 }}`)
-      traefik.http.routers.homepage.tls: "true"
-      traefik.http.routers.homepage.entrypoints: websecure
-      traefik.http.services.homepage.loadbalancer.server.port: "3000"
+      traefik.http.routers.influxdb.rule: Host(`{{ influxdb_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.influxdb.tls: "true"
+      traefik.http.routers.influxdb.entrypoints: websecure
+      traefik.http.services.influxdb.loadbalancer.server.port: "80"
     mode: 'replicated'
-    replicas: 2
+    replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.platform.os == linux'
   no_log: "{{ not docker_service_debug }}"
   tags:
-    - homepage
-    - homepage_deploy
-    - homepage_config
-    - homepage_network
-    - homepage_service
-    - homepage_data
-    - homepage_volume
-    - homepage_container
+    - influxdb
+    - influxdb_deploy
+    - influxdb_config
+    - influxdb_network
+    - influxdb_service
+    - influxdb_data
+    - influxdb_volume
+    - influxdb_container

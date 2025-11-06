@@ -25,19 +25,22 @@
   tasks:
     - name: Setup janitor
       ansible.builtin.include_tasks: tasks/janitor.yml
+      tags: [janitor]
     - name: Setup Traffic
-      ansible.builtin.include_tasks: tasks/traefik.yml
+      ansible.builtin.include_tasks: tasks/traefik3.yml
       vars:
         traefik_selfsign: false
       tags: [traefik, whoami]
     - name: Setup portainer
       ansible.builtin.include_tasks: tasks/portainer.yml
+      tags: [portainer]
+
     - name: Setup pihole
       tags: [pihole]
       ansible.builtin.include_tasks: tasks/pihole.yml
-    - name: Setup apt-cacher-ng
-      ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
-      tags: [apt-cacher-ng]
+    # - name: Setup apt-cacher-ng
+    #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
+    #   tags: [apt-cacher-ng]
     - name: Setup Discount Bandit
       ansible.builtin.include_tasks: tasks/discount-bandit.yml
       tags: [discount-bandit]
@@ -47,18 +50,41 @@
     - name: Setup Wolnut
       ansible.builtin.include_tasks: tasks/wolnut.yml
       tags: [wolnut]
+    - name: Setup Grafana
+      ansible.builtin.include_tasks: tasks/grafana.yml
+      tags: [grafana]
+
     # - name: Setup ROMM
     #   ansible.builtin.include_tasks: tasks/romm.yml
     #   tags: [romm]
+
     - name: Setup Smokeping
       ansible.builtin.include_tasks: tasks/smokeping.yml
       tags: [smokeping]
+
+    - name: Setup Smokeping2
+      ansible.builtin.include_tasks: tasks/smokeping2.yml
+      tags: [smokeping2]
+
     - name: Setup Homepage
       ansible.builtin.include_tasks: tasks/homepage.yml
       tags: [homepage]
+
+    - name: Setup Homepage
+      ansible.builtin.include_tasks: tasks/stacks/homepage.yml
+      tags: [homepage-stack]
+
     - name: Setup n8n
       ansible.builtin.include_tasks: tasks/n8n.yml
       tags: [n8n]
+    # Deploy ARR Services {Deluge}
+    # - name: Setup deluge
+    #   ansible.builtin.include_tasks: tasks/arr/deluge.yml
+    #   tags: [deluge]
+    - name: Setup Arr Stack
+      ansible.builtin.include_tasks: tasks/arr/arr.yml
+      tags: [arr]
+
     - name: Add telegraf user to Docker Group
       ansible.builtin.user:
         name: telegraf
@@ -66,10 +92,23 @@
         append: true
       notify:
         - Restart telegraf
+
       tags: [telegraf]
+    - name: Add ubuntu user to Docker Group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: true
   roles:
+    - role: setup
+      tags: [setup, packages]
     - role: geerlingguy.pip
       tags: [python, pip]
   vars_files:
     - main.yml
     - main.vault.yml
+  vars:
+    ansible_user: ubuntu
+    ansible_python_interpreter: /usr/bin/python3
+    docker_network: the_ways
+    traefik_proxy_network: traefik_proxy

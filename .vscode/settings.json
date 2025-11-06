@@ -1,6 +1,13 @@
 {
     "ansible.python.interpreterPath": "/bin/python",
+    "yaml.schemaStore.enable": true,
+    "yaml.schemaStore.url": "https://www.schemastore.org/api/json/catalog.json",
     "yaml.schemas": {
-        "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": "file:///var/home/joe/Documents/src/Ansible/ansible-rk1-cluster/tasks/traefik.yml"
+        "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": [
+            "file:///var/home/joe/Documents/src/Ansible/ansible-rk1-cluster/tasks/traefik.yml",
+            "file:///var/home/joe/Documents/src/Ansible/ansible-rk1-cluster/deploy.yml",
+            "file:///var/home/joe/Documents/src/Ansible/ansible-rk1-cluster/tasks/arr/deluge.yml"
+        ],
+        "https://www.schemastore.org/traefik-v3.json": "file:///var/home/joe/Documents/src/Ansible/ansible-rk1-cluster/files/traefik3/traefik.yml"
     }
 }

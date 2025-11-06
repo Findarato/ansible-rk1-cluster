@@ -4,6 +4,7 @@
     name: 'gitea_backend'
     driver: 'overlay'
 
+
 - name: 'Create directory for container data'
   ansible.builtin.file:
     path: "{{ docker_data_dir }}/{{ dir }}"

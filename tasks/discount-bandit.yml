@@ -3,6 +3,7 @@
   community.docker.docker_network:
     name: 'discountbandit_backend'
     driver: 'overlay'
+    state: absent
   tags:
     - discountbandit
 
@@ -19,12 +20,16 @@
     - 'discountbandit-data/vendor'
   loop_control:
     loop_var: 'dir'
+  tags:
+    - discountbandit
 
 - name: 'Remove discountbandit'
   community.docker.docker_swarm_service:
     name: 'discountbandit'
     state: absent
     replicas: 0
+  tags:
+    - discountbandit
 
 - name: 'Deploy discountbandit'
   community.docker.docker_swarm_service:
@@ -48,8 +53,7 @@
       #   target: '/app/vendor'
       #   type: 'bind'
     networks:
-      - 'discountbandit_backend'
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"
@@ -62,7 +66,5 @@
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.role == worker'
-  # no_log: "{{ not docker_service_debug }}"
+  tags:
+  - discountbandit

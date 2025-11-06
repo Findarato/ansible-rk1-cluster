@@ -1,0 +1,226 @@
+---
+
+## Title: tasks/arr/deluge.yml
+## Description: Deploy deluge to a docker swarm
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-10-26 15:35:12
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+# - name: 'Create network'
+#   community.docker.docker_network:
+#     name: 'deluge_backend'
+#     driver: 'overlay'
+#   tags:
+#     - deluge
+
+# - name: 'Create and connect to 🏴‍☠️ ARR network'
+#   community.docker.docker_network:
+#     name: 'arr_backend'
+#     driver: 'overlay'
+#   tags:
+#     - deluge
+#     - arr
+
+- name: Create Docker paths
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ item }}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+    recurse: true
+  with_items:
+    - arr/deluge-config
+    - arr/sonarr-config
+  tags:
+    - arr
+
+# - name: 🔥 Remove deluge container
+#   community.docker.docker_swarm_service:
+#     name: deluge
+#     state: absent
+#     replicas: 0
+#   tags:
+#     - deluge
+
+# - name: Create NFS mount downloads
+#   community.docker.docker_volume:
+#     # name: arr-downloads
+#     name: test-downloads
+#     state: present
+#     driver: local
+#     recreate: options-changed
+#     driver_options:
+#       type: nfs
+#       o: "addr=10.1.1.33,rw"
+#       device: ":/mnt/torrents/"
+#   tags:
+#     - deluge
+#     - nfs_volume
+
+# - name: Create NFS mount downloads
+#   community.docker.docker_volume:
+#     name: arr-downloads
+#     state: present
+#     recreate: options-changed
+#     driver: local
+#     driver_options:
+#       type: nfs
+#       o: "addr=10.1.1.5,rw"
+#       device: '10.1.1.5:/volume2/ssd.docker/torrents/downloads/complete/'
+#   tags:
+#     - deluge
+#     - nfs_volume
+
+# - name: Create and Update Deluge Container
+#   community.docker.docker_swarm_service:
+#     name: deluge
+#     image: lscr.io/linuxserver/deluge:{{ deluge_release }}
+#     hostname: deluge
+#     force_update: true
+#     env:
+#       - "PGID=1000"
+#       - "PUID=1001"
+#       - "DELUGE_LOGLEVEL=error"
+#     dns:
+#       - "{{ dns_servers[0] }}"
+#       - "{{ dns_servers[1] }}"
+#     mounts:
+#       - source: "{{ docker_data_dir }}/deluge-config"
+#         target: /config
+#         type: bind
+#       - source: "/mnt/nfs/torrents/"
+#         target: /downloads
+#         type: bind
+#       - source: "test-downloads"
+#         target: /test-downloads
+#         type: volume
+#         no_copy: true
+#       - source: '/etc/localtime'
+#         target: '/etc/localtime'
+#         type: 'bind'
+#         readonly: true
+#     networks:
+#       - 'deluge_backend'  # Connect to deluge backend
+#       - 'arr_backend'     # Connect to arr backend for sonarr/radarr/deluge
+#       - 'traefik_backend' # Connect to traefik for routing
+#     labels:
+#       traefik.enable: "true"
+#       traefik.http.routers.deluge.rule: Host(`{{ deluge_app_name }}.{{ traefik_domain_rk1 }}`)
+#       traefik.http.routers.deluge.tls: "true"
+#       traefik.http.routers.deluge.entrypoints: websecure
+#       traefik.http.services.deluge.loadbalancer.server.port: "8112"
+#       traefik.tcp.services.deluge-tcp.loadbalancer.server.port: "58846"
+#     mode: 'replicated'
+#     replicas: 1
+#     restart_config:
+#       condition: "{{ restart_condition }}"
+#   tags:
+#     - deluge
+
+- name: Remove stack
+  community.docker.docker_stack:
+    name: Arr
+    state: absent
+  tags:
+    - no-arr-stack
+
+- name: Deploy Arr Stack
+  community.docker.docker_stack:
+    state: present
+    prune: true
+    name: Arr
+    compose:
+      - version: '3.8'
+        services: # Define 🏴‍☠️ Arr Services
+          Deluge: # Deluge Container
+            image: "lscr.io/linuxserver/deluge:{{ deluge_release }}"
+            deploy:
+              labels:
+                traefik.enable: "true"
+                traefik.http.routers.deluge.rule: Host(`{{ deluge_app_name }}.{{ traefik_domain_rk1 }}`)
+                traefik.http.routers.deluge.tls: "true"
+                traefik.http.routers.deluge.entrypoints: websecure
+                traefik.http.services.deluge.loadbalancer.server.port: "8112"
+                traefik.tcp.services.deluge-tcp.loadbalancer.server.port: "58846"            
+              replicas: 1
+              update_config:
+                delay: 1s
+              restart_policy:
+                condition: on-failure
+            # healthcheck:
+            #   test: ["CMD-SHELL", "curl --silent --fail localhost:8112 || exit 1"]
+            #   interval: 10s
+            #   timeout: 10s
+            #   retries: 3
+            volumes:
+              - "{{ docker_data_dir }}/deluge-config:/config"
+              - downloads:/downloads
+              - /etc/localtime:/etc/localtime:ro
+            networks:
+              - tortuga       # Connect to arr backend for sonarr/radarr/deluge
+              - "{{ traefik_proxy_network }}" # Connect to traefik for routing
+          Sonarr: # Sonarr Container
+            image: "lscr.io/linuxserver/sonarr:{{ sonarr_release }}"
+            deploy:
+              labels:
+                traefik.enable: "true"
+                traefik.http.routers.sonarr.rule: Host(`{{ sonarr_app_name }}.{{ traefik_domain_rk1 }}`)
+                traefik.http.routers.sonarr.tls: "true"
+                traefik.http.routers.sonarr.entrypoints: websecure
+                traefik.http.services.sonarr.loadbalancer.server.port: "8989"
+              replicas: 1
+              update_config:
+                delay: 1s
+              restart_policy:
+                condition: on-failure
+            # healthcheck:
+            #   test: ["CMD-SHELL", "curl --silent --fail localhost:8989 || exit 1"]
+            #   interval: 10s
+            #   timeout: 10s
+            #   retries: 3
+            volumes:
+              - "{{ docker_data_dir }}/arr/sonarr-config:/config"
+              - downloads:/downloads
+              - /etc/localtime:/etc/localtime:ro
+            networks:
+              - tortuga       # Connect to arr backend for sonarr/radarr/deluge
+              - "{{ traefik_proxy_network }}" # Connect to traefik for routing
+
+        volumes: #  Define NFS volume for downloads
+          downloads:
+            driver: local
+            driver_opts:
+              type: "nfs"
+              o: 'addr=10.1.1.33,nolock,soft,rw'
+              device: ":/mnt/torrents/"
+          tv:
+            driver: local
+            driver_opts:
+              type: "nfs"
+              o: 'addr=10.1.1.7,nolock,soft,rw'
+              device: ":/mnt/Dedicated/Storage/TV/"
+          movies:
+            driver: local
+            driver_opts:
+              type: "nfs"
+              o: 'addr=10.1.1.7,nolock,soft,rw'
+              device: ":/mnt/Dedicated/Storage/Movies/"
+        networks: # Define networks
+          "{{ traefik_proxy_network }}": # Connect to traefik for routing
+            external: true
+          tortuga: # Private run runner network
+            driver: overlay
+  tags:
+    - arr

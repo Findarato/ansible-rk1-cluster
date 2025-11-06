@@ -1,6 +1,6 @@
 ---
 
-## Title: /workspaces/ansible-rk1-cluster/vars/main.yml
+## Title: vars/main.yml
 ## Description: All variables for the playbooks
 ## Author: Joseph Harry <findarato@gmail.com>
 ## Copyright: Joseph Harry <findarato@gmail.com>
@@ -29,12 +29,17 @@ docker_worker_group: 'docker_workers'             # Groups that contain this Swa
 docker_user: ubuntu
 
 
-restart_condition: 'any'
+restart_condition: 'on-failure'
 
 traefik_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
 traefik_domain: 'mcharryville.space'              # Subdomain to put all services under
 traefik_selfsign: false                           # Selfsign the used SSL certificate
 traefik_version: '2.11'
+
+traefik3_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
+traefik3_domain: 'mcharryville.space'              # Subdomain to put all services under
+traefik3_selfsign: false                           # Selfsign the used SSL certificate
+traefik3_version: '3.5'
 
 portainer_app_name: 'portainer'                   # Service name for Portainer (portainer.dckr.example.com)
 
@@ -54,7 +59,13 @@ smokeping_release: 'latest'                       # What version of the containe
 discountbandit_app_name: discountbandit
 discountbandit_release: 'v3.6'                     # What version of the container to use
 
-# Change Detection
+#     ██████╗██╗  ██╗ █████╗ ███╗   ██╗ ██████╗ ███████╗    ██████╗ ███████╗████████╗███████╗ ██████╗████████╗██╗ ██████╗ ███╗   ██╗
+#    ██╔════╝██║  ██║██╔══██╗████╗  ██║██╔════╝ ██╔════╝    ██╔══██╗██╔════╝╚══██╔══╝██╔════╝██╔════╝╚══██╔══╝██║██╔═══██╗████╗  ██║
+#    ██║     ███████║███████║██╔██╗ ██║██║  ███╗█████╗      ██║  ██║█████╗     ██║   █████╗  ██║        ██║   ██║██║   ██║██╔██╗ ██║
+#    ██║     ██╔══██║██╔══██║██║╚██╗██║██║   ██║██╔══╝      ██║  ██║██╔══╝     ██║   ██╔══╝  ██║        ██║   ██║██║   ██║██║╚██╗██║
+#    ╚██████╗██║  ██║██║  ██║██║ ╚████║╚██████╔╝███████╗    ██████╔╝███████╗   ██║   ███████╗╚██████╗   ██║   ██║╚██████╔╝██║ ╚████║
+#     ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚══════╝    ╚═════╝ ╚══════╝   ╚═╝   ╚══════╝ ╚═════╝   ╚═╝   ╚═╝ ╚═════╝ ╚═╝  ╚═══╝
+#       
 changedetection_app_name: changedetection
 changedetection_release: 'latest'                  # What version of the container to use
 
@@ -64,6 +75,16 @@ homepage_release: 'latest'                         # What version of the contain
 
 #ROMM
 romm_app_name: romm
+
+#grafana
+grafana_release: 'main-ubuntu'                           # What version of the container to use
+grafana_app_name: grafana
+grafana_db_release: '8.0'                        # What version of the container to use
+grafana_db_user: 'grafana'
+grafana_db_name: 'grafana'
+grafana_db_password: "{{ vault_grafana_db_password }}"
+grafana_db_non_root_user: "{{ vault_grafana_db_non_root_user }}"
+grafana_db_root_password: "{{ vault_grafana_db_root_password }}"
 
 #N8N
 n8n_app_name: n8n
@@ -77,3 +98,25 @@ n8n_db_name: 'n8n'
 n8n_db_password: "{{ vault_n8n_db_password }}"
 n8n_db_non_root_user: "{{ vault_n8n_db_non_root_user }}"
 
+
+# 🏴‍☠️     ▄▄▄       ██▀███   ██▀███      🏴‍☠️
+# 🏴‍☠️    ▒████▄    ▓██ ▒ ██▒▓██ ▒ ██▒    🏴‍☠️
+# 🏴‍☠️    ▒██  ▀█▄  ▓██ ░▄█ ▒▓██ ░▄█ ▒    🏴‍☠️
+# 🏴‍☠️    ░██▄▄▄▄██ ▒██▀▀█▄  ▒██▀▀█▄      🏴‍☠️
+# 🏴‍☠️     ▓█   ▓██▒░██▓ ▒██▒░██▓ ▒██▒    🏴‍☠️
+# 🏴‍☠️     ▒▒   ▓▒█░░ ▒▓ ░▒▓░░ ▒▓ ░▒▓░    🏴‍☠️
+# 🏴‍☠️      ▒   ▒▒ ░  ░▒ ░ ▒░  ░▒ ░ ▒░    🏴‍☠️
+# 🏴‍☠️      ░   ▒     ░░   ░   ░░   ░     🏴‍☠️
+# 🏴‍☠️          ░  ░   ░        ░         🏴‍☠️
+
+deluge_app_name: deluge
+deluge_release: 'latest'   
+sonarr_app_name: sonarr                            
+sonarr_release: 'latest'                            # What version of the container to use
+radarr_app_name: radarr                            
+radarr_release: 'latest'                            # What version of the container to use
+lidarr_app_name: lidarr                            
+lidarr_release: 'latest'                            # What version of the container to use
+readarr_app_name: readarr                          
+readarr_release: 'latest'                           # What version of the container to use
+arr_downloads_volume: downloads                      # Volume name for downloads

@@ -62,15 +62,6 @@
         type: 'bind'
     networks:
       - 'romm_network'
-    # healthcheck:
-    #   test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-    #   start_period: 30s
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
-    # publish:
-    #   - published_port: 3306
-    #     target_port: 3306
     labels:
       traefik.enable: "false"
     mode: replicated
@@ -120,7 +111,7 @@
         target: '/romm/redis-data'
         type: 'bind'
     networks:
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
       - 'romm_network'
     labels:
       traefik.enable: "true"

@@ -1,0 +1,143 @@
+---
+
+## Title: ~/Documents/src/Ansible/ansible-rk1-cluster/tasks/grafana.yml
+## Description: All tasks to deploy and manage Grafana in Docker Swarm
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-10-12 17:01:15
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'grafana_backend'
+    driver: 'overlay'
+  tags:
+    - grafana
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0755'
+    state: 'directory'
+  loop:
+    - 'grafana-config'
+    - 'grafana-data'
+    - 'grafana-data/db'
+  loop_control:
+    loop_var: 'dir'
+  tags:
+    - grafana
+
+- name: Copy configuration file
+  template:
+    src: grafana/defaults.ini.j2
+    dest: "{{ docker_data_dir }}/grafana-config/grafana.ini"
+    mode: '0644'
+    owner: "472"
+    group: "472"
+  tags:
+    - grafana
+
+# - name: 'Deploy grafana_database'
+#   community.docker.docker_swarm_service:
+#     name: 'grafana-db'
+#     image: "mysql:{{ grafana_db_release }}"
+#     hostname: grafana_db
+#     force_update: true
+#     env:
+#       - "MYSQL_USER={{ grafana_db_user }}"
+#       - "MYSQL_PASSWORD={{ grafana_db_password | default('superpassword') }}"
+#       - "MYSQL_ROOT_PASSWORD={{ grafana_db_root_password | default('superpassword') }}"
+
+#     mounts:
+#       - source: "{{ docker_data_dir }}/n8n-data/postgres/data"
+#         target: '/var/lib/postgresql/data'
+#         type: 'bind'
+#     networks:
+#       - 'grafana_backend'
+#     mode: 'replicated'
+#     replicas: 1
+#     restart_config:
+#       condition: "{{ restart_condition }}"
+#     placement:
+#       constraints:
+#         - 'node.platform.os == linux'
+#   no_log: "{{ not docker_service_debug }}"
+#   tags:
+#     - grafana
+#     - grafana_deploy
+#     - grafana_database
+
+- name: 'Remove grafana'
+  community.docker.docker_swarm_service:
+    name: 'grafana'
+    state: absent
+    replicas: 0
+  tags:
+    - grafana
+    - stop_all_services
+
+- name: 'Deploy grafana'
+  community.docker.docker_swarm_service:
+    name: 'grafana'
+    image: "grafana/grafana-oss:{{ grafana_release }}"
+    hostname: grafana
+    force_update: true
+    env:
+      - "ServerName=grafana"
+      - "PUID=1000"
+      - "PGID=1000"
+      - "TZ=America/Chicago"
+      - "GRAFANA_ALLOWED_HOSTS={{ grafana_app_name }}.{{ traefik_domain_rk1 }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/grafana-config"
+        target: '/etc/grafana'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/grafana-data/"
+        target: '/var/lib/grafana'
+        type: 'bind'
+      - source: '/etc/localtime'
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
+    networks:
+      - 'grafana_backend'
+      - "{{ traefik_proxy_network }}"
+    publish:
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.grafana.rule: Host(`{{ grafana_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.grafana.tls: "true"
+      traefik.http.routers.grafana.entrypoints: websecure
+      traefik.http.services.grafana.loadbalancer.server.port: "3000"
+    mode: 'replicated'
+    replicas: 2
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+  no_log: "{{ not docker_service_debug }}"
+  tags:
+    - grafana
+    - grafana_deploy
+    - grafana_config
+    - grafana_network
+    - grafana_service
+    - grafana_data
+    - grafana_volume
+    - grafana_container

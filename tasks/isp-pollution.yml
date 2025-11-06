@@ -37,7 +37,7 @@
         type: 'bind'
         readonly: true
     networks:
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
     mode: 'replicated'
     replicas: 6
     restart_config:

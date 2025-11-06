@@ -1,6 +1,19 @@
 ---
 # tasks file for roles/gluster-docker
 
+
+- name: Install Gluster Server
+  ansible.builtin.apt:
+    name: glusterfs-server
+    state: present
+    update_cache: yes
+
+- name: Start Gluster service
+  ansible.builtin.service:
+    name: glusterfs-server
+    state: started
+    enabled: yes
+
 - name: Install Python tools for docker
   pip:
     name: docker

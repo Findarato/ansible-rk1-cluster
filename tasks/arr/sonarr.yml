@@ -1,0 +1,114 @@
+---
+
+## Title: ~/Documents/src/Ansible/ansible-rk1-cluster/tasks/arr/sonarr.yml
+## Description: Deploy Sonarr to the swarm with NFS mounts
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-10-26 15:01:32
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+
+- name: Install Python tools for docker
+  pip:
+    name: docker
+    state: latest
+
+- name: 'Create and connect to 🏴‍☠️ ARR network'
+  community.docker.docker_network:
+    name: 'arr_backend'
+    driver: 'overlay'
+  tags:
+    - sonarr
+    - arr
+
+
+- name: Create Docker paths
+  file:
+    path: "{{ docker_sonarr_storage }}{{ item }}"
+    state: directory
+  with_items:
+    - config
+
+- name: 📺 Create NFS mount TV
+  community.docker.docker_volume:
+    name: nfs-tv
+    state: present
+    driver: local
+    recreate: options-changed
+    driver_options:
+      type: nfs
+      o: "addr=10.1.1.7,rw"
+      device: :/mnt/Dedicated/Storage/TV/
+
+- name: Create and Update sonarr Container
+  community.docker.docker_swarm_service:
+    name: sonarr
+    image: lscr.io/linuxserver/sonarr:latest
+    hostname: sonarr
+    force_update: true
+    env:
+      - "PGID=1000"
+      - "PUID=1001"
+      - "DELUGE_LOGLEVEL=error"
+      - "TZ=America/Chicago"
+    dns:
+      - "{{ dns_servers[0] }}"
+      - "{{ dns_servers[1] }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/deluge-config"
+        target: /config
+        type: bind
+      - source: "/mnt/nfs/torrents/"
+        target: /downloads
+        type: bind
+      - source: '/etc/localtime'
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
+    networks:
+      - 'arr_backend'     # Connect to arr backend for sonarr/radarr/deluge
+      - 'traefik_backend' # Connect to traefik for routing
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.sonarr.rule: Host(`{{ sonarr_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.sonarr.tls: "true"
+      traefik.http.routers.sonarr.entrypoints: websecure
+      traefik.http.services.sonarr.loadbalancer.server.port: "8989"
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  tags:
+    - deluge
+
+
+- name: Recreate Sonarr container
+  community.docker.docker_container:
+    name: sonarr
+    image: lscr.io/linuxserver/sonarr:latest
+    state: started
+    restart_policy: unless-stopped
+    recreate: yes
+    restart: yes
+    pull: true
+    volumes:
+      - /etc/localtime:/ect/localtime:ro
+      - arr-downloads:/downloads
+      - "nfs-tv:/tv"
+      - "{{ docker_sonarr_storage }}/config:/config"
+
+
+  tags:
+    - sonarr

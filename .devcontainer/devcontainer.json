@@ -13,7 +13,8 @@
 		"vscode": {
 			"extensions": [
 				"redhat.ansible",
-				"GitHub.copilot"
+				"GitHub.copilot",
+				"redhat.vscode-yaml"
 			]
 		}
 	}

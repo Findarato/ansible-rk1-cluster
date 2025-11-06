@@ -1,10 +1,11 @@
 ---
 - name: 'Create network'
   community.docker.docker_network:
-    name: 'changedetection_backend'
+    name: 'browser_backend'
     driver: 'overlay'
+    attachable: true
   tags:
-    - changedetection
+    - browser
 
 - name: 'Create directory for container data'
   ansible.builtin.file:
@@ -29,6 +30,8 @@
     - "browser_ff"
     - "playwrite"
     - "changedetection"
+  tags:
+  - stop_all_services
 
 - name: 'Deploy browser'
   community.docker.docker_swarm_service:
@@ -40,7 +43,7 @@
       - 'TZ="America/Chicago"'
       - 'DEFAULT_LAUNCH_ARGS="[\"--window-size=1920,1080\"]"'
     networks:
-      - 'changedetection_backend'
+      - 'browser_backend'
     mode: 'replicated'
     replicas: 1
     restart_config:
@@ -59,7 +62,7 @@
       - 'TZ="America/Chicago"'
       - 'DEFAULT_LAUNCH_ARGS="[\"--window-size=1920,1080\"]"'
     networks:
-      - 'changedetection_backend'
+      - 'browser_backend'
     mode: 'replicated'
 
     restart_config:
@@ -85,8 +88,8 @@
         target: '/config'
         type: 'bind'
     networks:
-      - 'changedetection_backend'
-      - 'traefik_backend'
+      - 'browser_backend'
+      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"
@@ -98,7 +101,4 @@
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.role == worker'
   no_log: "{{ not docker_service_debug }}"

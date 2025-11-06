@@ -36,17 +36,17 @@
     mode: '0750'
     state: 'directory'
   loop:
-    - 'traefik_data'
-    - 'traefik_data/certs/'
+    - 'traefik3_data'
+    - 'traefik3_data/certs/'
   loop_control:
     loop_var: 'dir'
   tags:
     - traefik
 
-- name: 'Deploy Traefik YML config'
+- name: 'Deploy traefik3 YML config'
   ansible.builtin.copy:
-    src: 'files/traefik.yml'
-    dest: "{{ docker_data_dir }}/traefik_data/traefik.yml"
+    src: 'files/traefik3/traefik.yml'
+    dest: "{{ docker_data_dir }}/traefik3_data/traefik.yml"
     owner: 'root'
     group: 'root'
     mode: '0644'
@@ -55,8 +55,8 @@
 
 - name: 'Deploy Traefik YML Extra config'
   ansible.builtin.copy:
-    src: 'files/config.yml'
-    dest: "{{ docker_data_dir }}/traefik_data/config.yml"
+    src: 'files/traefik3/config.yml'
+    dest: "{{ docker_data_dir }}/traefik3_data/config.yml"
     owner: 'root'
     group: 'root'
     mode: '0644'
@@ -65,19 +65,16 @@
 
 - name: 'Deploy Traefik'
   community.docker.docker_swarm_service:
-    name: 'traefik'
-    image: 'traefik:{{ traefik_version }}'
+    name: 'traefik3'
+    image: 'traefik:{{ traefik3_version }}'
     # state: absent
     force_update: true
     command:
       - '/usr/local/bin/traefik'
-      - "--log.level=DEBUG"
-      # - '--providers.swarm=true' # Version 3
-      - '--providers.docker.watch'
       - '--providers.file.filename=/traefik.yml'
     labels:
       traefik.http.routers.websecure.tls.certresolver: cloudflare
-      traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
+      # traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
       traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
       traefik.http.routers.websecure.service[0]: "api@internal"
       traefik.http.routers.websecure.service[1]: "ping@internal"
@@ -87,22 +84,18 @@
       # - "CF_API_KEY={{ vault_cf_api_key }}"       # Do not use if using token
       - "CF_DNS_API_TOKEN={{ vault_cf_api_token }}"
     mounts:
-      - source: '/etc/localtime'
-        target: '/etc/localtime'
-        type: 'bind'
-        readonly: true
       - source: '/var/run/docker.sock'
         target: '/var/run/docker.sock'
         type: 'bind'
         readonly: true
-      - source: '{{ docker_data_dir }}/traefik_data/traefik.yml'
+      - source: '{{ docker_data_dir }}/traefik3_data/traefik.yml'
         target: '/traefik.yml'
         type: 'bind'
-      - source: '{{ docker_data_dir }}/traefik_data/certs'
+      - source: '{{ docker_data_dir }}/traefik3_data/certs'
         target: '/certs/'
         type: 'bind'
         readonly: false
-      - source: '{{ docker_data_dir }}/traefik_data/config.yml'
+      - source: '{{ docker_data_dir }}/traefik3_data/config.yml'
         target: '/config.yml'
         type: 'bind'
         readonly: true
@@ -167,26 +160,25 @@
     - whoami
 
 # TODO: Fix this to work with swarm mode
-# - name: Deploy Docker Socket Proxy
-#   community.docker.docker_swarm_service:
-#   dockersocket:
-#     <<: *default-opts
-#     image: tecnativa/docker-socket-proxy
-#     volumes:
-#       - /var/run/docker.sock:/var/run/docker.sock
-#     environment:
-#       CONTAINERS: 1
-#       NETWORKS: 1
-#       SERVICES: 1
-#       SWARM: 1
-#       TASKS: 1
-#     deploy:
-#       mode: global
-#       placement:
-#         constraints:
-#           - "node.role==manager"
-#     networks:
-#       - traefik-socket
+- name: Deploy Docker Socket Proxy
+  community.docker.docker_swarm_service:
+  dockersocket:
+    image: tecnativa/docker-socket-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      CONTAINERS: 1
+      NETWORKS: 1
+      SERVICES: 1
+      SWARM: 1
+      TASKS: 1
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - "node.role==manager"
+    networks:
+      - traefik-socket
 
 
 # - name: install visualizer

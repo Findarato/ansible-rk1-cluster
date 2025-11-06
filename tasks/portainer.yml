@@ -3,6 +3,8 @@
   community.docker.docker_network:
     name: 'portainer_agent_network'
     driver: 'overlay'
+  tags:
+    - portainer
 
 - name: 'Create directory for container data'
   ansible.builtin.file:
@@ -11,6 +13,8 @@
     group: '{{ docker_user }}'
     mode: '0750'
     state: 'directory'
+  tags:
+    - portainer
 
 - name: 'Deploy Portainer Agent'
   community.docker.docker_swarm_service:
@@ -33,6 +37,8 @@
     placement:
       constraints:
         - 'node.platform.os == linux'
+  tags:
+    - portainer
 
 - name: 'Deploy Portainer'
   community.docker.docker_swarm_service:
@@ -47,7 +53,7 @@
         target: '/data'
         type: 'bind'
     networks:
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network}}"
       - 'portainer_agent_network'
     labels:
       traefik.enable: "true"
@@ -62,3 +68,5 @@
     placement:
       constraints:
         - 'node.role == manager'
+  tags:
+    - portainer

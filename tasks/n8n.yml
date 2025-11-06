@@ -134,7 +134,7 @@
         type: 'bind'
     networks:
       - 'n8n_backend'
-      - 'traefik_backend'
+      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"
