@@ -83,6 +83,7 @@
       traefik.http.routers.homepage.rule: Host(`{{ homepage_app_name }}.{{ traefik_domain_rk1 }}`)
       traefik.http.routers.homepage.tls: "true"
       traefik.http.routers.homepage.entrypoints: websecure
+      traefik.http.routers.homepage.tls.certresolver: "cloudflare"
       traefik.http.services.homepage.loadbalancer.server.port: "3000"
     mode: 'replicated'
     replicas: 2

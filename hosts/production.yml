@@ -1,9 +1,9 @@
 ---
 all:
   children:
-    rk1_cluster:
+    rk1-cluster:
       children:
-        rk1_main:
+        rk1-main:
           hosts:
             rk1-cluster02.mcharryville.space:
         rk1_secondary:
@@ -11,6 +11,7 @@ all:
             rk1-cluster01.mcharryville.space:
             rk1-cluster02.mcharryville.space:
             rk1-cluster03.mcharryville.space:
-            vars:
-              install_nfs_server: true
             rk1-cluster04.mcharryville.space:
+    vars:
+      install_nfs_server: true
+    

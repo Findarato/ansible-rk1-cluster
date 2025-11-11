@@ -19,6 +19,7 @@
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 dns_servers: ['10.1.1.1', '10.1.1.6']
+public_dns_servers: ['1.1.1.1', '8.8.8.8']
 
 docker_service_debug: true                        # Enable to see sensitive output when deploying services
 
@@ -39,7 +40,7 @@ traefik_version: '2.11'
 traefik3_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
 traefik3_domain: 'mcharryville.space'              # Subdomain to put all services under
 traefik3_selfsign: false                           # Selfsign the used SSL certificate
-traefik3_version: '3.5'
+traefik3_version: '3.6'
 
 portainer_app_name: 'portainer'                   # Service name for Portainer (portainer.dckr.example.com)
 

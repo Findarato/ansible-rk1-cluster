@@ -34,7 +34,4 @@
     mode: 'global'
     restart_config:
       condition: "{{ restart_condition }}"
-    placement:
-      constraints:
-        - 'node.platform.os == linux'
     user: null

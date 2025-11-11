@@ -60,9 +60,6 @@
       # traefik.http.routers.pihole.rule: HostHeader(`{{ pihole_app_name }}.{{ traefik_domain }}`)
       traefik.http.routers.pihole.tls: "true"
       traefik.http.routers.pihole.entrypoints: websecure
-      traefik.http.routers.pihole.tls.certresolver: cloudflare
-      traefik.http.routers.pihole.tls.domains[0].main: "*.mcharryville.space"
-      traefik.http.routers.pihole.tls.domains[0].sans: "*.rk1.mcharryville.space"
       traefik.http.routers.pihole.middlewares[0]: 'pihole-redirectregex'
       traefik.http.routers.pihole.middlewares[1]: 'pihole-addprefix'
       traefik.http.services.pihole.loadbalancer.server.port: 80

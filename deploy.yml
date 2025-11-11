@@ -17,8 +17,65 @@
 ## with this program; if not, write to the Free Software Foundation, Inc.
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+# - name: Create NFS Mounts
+#   hosts: all
+#   gather_facts: true
+#   user: ubuntu
+#   become: true
+#   tasks:
+#     - name: Ensure nfs-common is installed
+#       ansible.builtin.apt:
+#         name: nfs-common
+#         state: present
+#         update_cache: true
+#       tags:
+#         - nfs
+#         - setup
+
+#     - name: Create mount point directory
+#       ansible.builtin.file:
+#         path: "{{ nfs_mount_point }}"
+#         state: directory
+#         owner: ubuntu
+#         group: ubuntu
+#         mode: '0755'
+#       loop:
+#         - /docker/
+#         - /mnt/nvme
+#         - /mnt/nfs/bt/Storage
+#         - /mnt/nfs/backup
+#         - /mnt/nfs/storage
+#         - /mnt/nfs/torrents
+#       loop_control:
+#         loop_var: nfs_mount_point
+#       tags:
+#         - nfs
+#         - setup
+
+    # - name: Mount NFS Shares
+    #   ansible.builtin.mount:
+    #     path: "{{ nfs_mount_point.path }}"
+    #     src: "{{ nfs_mount_point.src }}"
+    #     fstype: nfs
+    #     opts: x-systemd.after=network-online.target,x-systemd.automount,nofail,noauto,rw
+    #     state: mounted
+    #   loop:
+    #     - src: 10.1.1.7:/mnt/Dedicated/Storage/
+    #       path: /mnt/nfs/bt/Storage
+    #     - src: rk1-cluster03:/mnt/storage
+    #       path: /mnt/nfs/storage
+    #     - src: rk1-cluster03:/mnt/torrents
+    #       path: /mnt/nfs/torrents
+    #     - src: rk1-cluster03:/mnt/backup
+    #       path: /mnt/nfs/backup
+    #   loop_control:
+    #     loop_var: nfs_mount_point
+    #   tags:
+    #     - nfs
+    #     - setup
+
 - name: Deploy Docker Swarm Services
-  hosts: rk1_main
+  hosts: rk1-main
   gather_facts: true
   user: ubuntu
   become: true
@@ -26,11 +83,11 @@
     - name: Setup janitor
       ansible.builtin.include_tasks: tasks/janitor.yml
       tags: [janitor]
+
     - name: Setup Traffic
       ansible.builtin.include_tasks: tasks/traefik3.yml
-      vars:
-        traefik_selfsign: false
       tags: [traefik, whoami]
+
     - name: Setup portainer
       ansible.builtin.include_tasks: tasks/portainer.yml
       tags: [portainer]
@@ -38,21 +95,23 @@
     - name: Setup pihole
       tags: [pihole]
       ansible.builtin.include_tasks: tasks/pihole.yml
-    # - name: Setup apt-cacher-ng
-    #   ansible.builtin.include_tasks: tasks/apt-cacher-ng.yml
-    #   tags: [apt-cacher-ng]
-    - name: Setup Discount Bandit
-      ansible.builtin.include_tasks: tasks/discount-bandit.yml
-      tags: [discount-bandit]
-    - name: Setup Change Detection
-      ansible.builtin.include_tasks: tasks/changedetection.yml
-      tags: [changedetection]
+
+
+    # - name: Setup Discount Bandit
+    #   ansible.builtin.include_tasks: tasks/discount-bandit.yml
+    #   tags: [discount-bandit]
+
+    # - name: Setup Change Detection
+    #   ansible.builtin.include_tasks: tasks/changedetection.yml
+    #   tags: [changedetection]
+
     - name: Setup Wolnut
       ansible.builtin.include_tasks: tasks/wolnut.yml
       tags: [wolnut]
-    - name: Setup Grafana
-      ansible.builtin.include_tasks: tasks/grafana.yml
-      tags: [grafana]
+
+    # - name: Setup Grafana
+    #   ansible.builtin.include_tasks: tasks/grafana.yml
+    #   tags: [grafana]
 
     # - name: Setup ROMM
     #   ansible.builtin.include_tasks: tasks/romm.yml
@@ -62,10 +121,6 @@
       ansible.builtin.include_tasks: tasks/smokeping.yml
       tags: [smokeping]
 
-    - name: Setup Smokeping2
-      ansible.builtin.include_tasks: tasks/smokeping2.yml
-      tags: [smokeping2]
-
     - name: Setup Homepage
       ansible.builtin.include_tasks: tasks/homepage.yml
       tags: [homepage]
@@ -74,16 +129,17 @@
       ansible.builtin.include_tasks: tasks/stacks/homepage.yml
       tags: [homepage-stack]
 
-    - name: Setup n8n
-      ansible.builtin.include_tasks: tasks/n8n.yml
-      tags: [n8n]
+    # - name: Setup n8n
+    #   ansible.builtin.include_tasks: tasks/n8n.yml
+    #   tags: [n8n]
+
     # Deploy ARR Services {Deluge}
     # - name: Setup deluge
     #   ansible.builtin.include_tasks: tasks/arr/deluge.yml
     #   tags: [deluge]
-    - name: Setup Arr Stack
-      ansible.builtin.include_tasks: tasks/arr/arr.yml
-      tags: [arr]
+    # - name: Setup Arr Stack
+    #   ansible.builtin.include_tasks: tasks/arr/arr.yml
+    #   tags: [arr]
 
     - name: Add telegraf user to Docker Group
       ansible.builtin.user:

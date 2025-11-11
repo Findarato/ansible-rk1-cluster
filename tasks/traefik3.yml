@@ -63,22 +63,40 @@
   tags:
     - traefik
 
+- name: '🔥 Remove Traefik'
+  community.docker.docker_swarm_service:
+    name: 'traefik'
+    state: absent
+  tags:
+    - traefik
+
+- name: '🔥 Remove Whoami'
+  community.docker.docker_swarm_service:
+    name: 'whoami'
+    state: absent
+  tags:
+    - traefik
+    - whoami
+
+
 - name: 'Deploy Traefik'
   community.docker.docker_swarm_service:
-    name: 'traefik3'
+    name: 'traefik'
     image: 'traefik:{{ traefik3_version }}'
     # state: absent
     force_update: true
     command:
       - '/usr/local/bin/traefik'
-      - '--providers.file.filename=/traefik.yml'
+      - --entrypoints.websecure.http.tls=true
+      - --providers.file.filename=/traefik.yml'
     labels:
-      traefik.http.routers.websecure.tls.certresolver: cloudflare
-      # traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
+      traefik.http.routers.websecure.tls.certresolver: "cloudflare"
+      traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
       traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
       traefik.http.routers.websecure.service[0]: "api@internal"
       traefik.http.routers.websecure.service[1]: "ping@internal"
-      traefik.http.routers.whoami.tls.certresolver: cloudflare
+      traefik.http.routers.whoami.tls.certresolver: "cloudflare"
+      
     env:
       # - "CF_API_EMAIL={{ vault_cf_api_email }}"   # Do not use if using token
       # - "CF_API_KEY={{ vault_cf_api_key }}"       # Do not use if using token
@@ -101,7 +119,12 @@
         readonly: true
     networks:
       - "{{ traefik_proxy_network }}"
-    mode: 'global'
+    dns:
+      - "{{ public_dns_servers[0] }}"
+      - "{{ public_dns_servers[1] }}"
+    # mode: 'global'
+    mode: 'replicated'
+    replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
     publish:
@@ -120,10 +143,10 @@
       - published_port: 3333
         target_port: 3333
         mode: "host"
-      - published_port: 53
-        target_port: 53
-        protocol: "udp"
-        mode: "host"
+      # - published_port: 53
+      #   target_port: 53
+      #   protocol: "udp"
+      #   mode: "host"
       - published_port: 58846
         target_port: 58846
         protocol: "tcp"
@@ -131,8 +154,7 @@
     placement:
       constraints:
         - node.role == manager
-        # - engine.labels.operatingsystem == ubuntu 14.04
-    user: null
+        - node.hostname == rk1-cluster02
   tags:
     - traefik
 
@@ -146,11 +168,12 @@
     labels:
       traefik.enable: "true"
       traefik.http.routers.whoami.rule: "Host(`whoami.{{ traefik_domain_rk1 }}`)"
-      traefik.http.routers.whoami.tls: "true"
       traefik.http.routers.whoami.entrypoints: websecure
+      traefik.http.routers.whoami.tls: "true"
+      traefik.http.routers.whoami.tls.certresolver: cloudflare
       traefik.http.services.whoami.loadbalancer.server.port: "80"
     mode: 'replicated'
-    replicas: 4
+    replicas: 8
     restart_config:
       condition: "{{ restart_condition }}"
 
@@ -160,25 +183,25 @@
     - whoami
 
 # TODO: Fix this to work with swarm mode
-- name: Deploy Docker Socket Proxy
-  community.docker.docker_swarm_service:
-  dockersocket:
-    image: tecnativa/docker-socket-proxy
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      CONTAINERS: 1
-      NETWORKS: 1
-      SERVICES: 1
-      SWARM: 1
-      TASKS: 1
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - "node.role==manager"
-    networks:
-      - traefik-socket
+# - name: Deploy Docker Socket Proxy
+#   community.docker.docker_swarm_service:
+#   dockersocket:
+#     image: tecnativa/docker-socket-proxy
+#     volumes:
+#       - /var/run/docker.sock:/var/run/docker.sock
+#     environment:
+#       CONTAINERS: 1
+#       NETWORKS: 1
+#       SERVICES: 1
+#       SWARM: 1
+#       TASKS: 1
+#     deploy:
+#       mode: global
+#       placement:
+#         constraints:
+#           - "node.role==manager"
+#     networks:
+#       - traefik-socket
 
 
 # - name: install visualizer

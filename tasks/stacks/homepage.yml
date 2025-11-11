@@ -54,3 +54,8 @@
 
   tags:
     - homepage-stack
+
+- name: Deploy Homepage Stack
+  community.docker.docker_stack:
+    state: absent
+    prune: true

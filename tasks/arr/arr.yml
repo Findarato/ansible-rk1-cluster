@@ -18,21 +18,6 @@
 ## with this program; if not, write to the Free Software Foundation, Inc.
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# - name: 'Create network'
-#   community.docker.docker_network:
-#     name: 'deluge_backend'
-#     driver: 'overlay'
-#   tags:
-#     - deluge
-
-# - name: 'Create and connect to 🏴‍☠️ ARR network'
-#   community.docker.docker_network:
-#     name: 'arr_backend'
-#     driver: 'overlay'
-#   tags:
-#     - deluge
-#     - arr
-
 - name: Create Docker paths
   ansible.builtin.file:
     path: "{{ docker_data_dir }}/{{ item }}"
@@ -45,43 +30,6 @@
     - arr/sonarr-config
   tags:
     - arr
-
-# - name: 🔥 Remove deluge container
-#   community.docker.docker_swarm_service:
-#     name: deluge
-#     state: absent
-#     replicas: 0
-#   tags:
-#     - deluge
-
-# - name: Create NFS mount downloads
-#   community.docker.docker_volume:
-#     # name: arr-downloads
-#     name: test-downloads
-#     state: present
-#     driver: local
-#     recreate: options-changed
-#     driver_options:
-#       type: nfs
-#       o: "addr=10.1.1.33,rw"
-#       device: ":/mnt/torrents/"
-#   tags:
-#     - deluge
-#     - nfs_volume
-
-# - name: Create NFS mount downloads
-#   community.docker.docker_volume:
-#     name: arr-downloads
-#     state: present
-#     recreate: options-changed
-#     driver: local
-#     driver_options:
-#       type: nfs
-#       o: "addr=10.1.1.5,rw"
-#       device: '10.1.1.5:/volume2/ssd.docker/torrents/downloads/complete/'
-#   tags:
-#     - deluge
-#     - nfs_volume
 
 # - name: Create and Update Deluge Container
 #   community.docker.docker_swarm_service:
@@ -159,6 +107,9 @@
                 delay: 1s
               restart_policy:
                 condition: on-failure
+              placement:
+                constraints:
+                  - 'node.platform.os == linux'
             # healthcheck:
             #   test: ["CMD-SHELL", "curl --silent --fail localhost:8112 || exit 1"]
             #   interval: 10s
@@ -166,7 +117,8 @@
             #   retries: 3
             volumes:
               - "{{ docker_data_dir }}/deluge-config:/config"
-              - downloads:/downloads
+              # - downloads:/downloads
+              - "/mnt/nfs/torrents/:/downloads"
               - /etc/localtime:/etc/localtime:ro
             networks:
               - tortuga       # Connect to arr backend for sonarr/radarr/deluge
@@ -185,6 +137,9 @@
                 delay: 1s
               restart_policy:
                 condition: on-failure
+              placement:
+                constraints:
+                  - 'node.platform.os == linux'                
             # healthcheck:
             #   test: ["CMD-SHELL", "curl --silent --fail localhost:8989 || exit 1"]
             #   interval: 10s
@@ -192,19 +147,19 @@
             #   retries: 3
             volumes:
               - "{{ docker_data_dir }}/arr/sonarr-config:/config"
-              - downloads:/downloads
+              - "/mnt/nfs/torrents/:/downloads"
               - /etc/localtime:/etc/localtime:ro
             networks:
               - tortuga       # Connect to arr backend for sonarr/radarr/deluge
               - "{{ traefik_proxy_network }}" # Connect to traefik for routing
 
         volumes: #  Define NFS volume for downloads
-          downloads:
-            driver: local
-            driver_opts:
-              type: "nfs"
-              o: 'addr=10.1.1.33,nolock,soft,rw'
-              device: ":/mnt/torrents/"
+          # downloads:
+          #   driver: local
+          #   driver_opts:
+          #     type: "nfs"
+          #     o: 'addr=10.1.1.33,nolock,soft,rw'
+          #     device: ":/mnt/torrents/"
           tv:
             driver: local
             driver_opts:
