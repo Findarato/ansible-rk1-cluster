@@ -1,0 +1,41 @@
+http:
+  routers:
+    # WLED Instances for Home Assistant Integration
+    library-window:
+      rule: "Host(`wled-librarywindow.wled.mcharryville.space`)"
+      entryPoints:
+        - websecure
+      tls: true
+      service: library-window
+    garage-lights:
+      rule: "Host(`wled-garage.wled.mcharryville.space`)"
+      tls: true
+      entryPoints:
+        - websecure
+      service: garage-lights
+    ct-pihole:
+      rule: "Host(`pihole01.mcharryville.space`)"
+      tls: true
+      entryPoints:
+        - websecure
+      service: ct-pihole
+
+  services:
+    # WLED Instances
+    ct-pihole:
+      loadBalancer:
+        servers:
+          - url: "http://ct-pihole.mcharryville.space"
+    library-window:
+      loadBalancer:
+        servers:
+          - url: "http://wled-librarywindow.iot.mcharryville.space"
+    garage-lights:
+      loadBalancer:
+        servers:
+          - url: "http://wled-garage.iot.mcharryville.space"
+    parents-lights:
+      loadBalancer:
+        servers:
+          - url: "http://wled-parents.iot.mcharryville.space"
+
