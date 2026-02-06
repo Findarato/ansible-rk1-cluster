@@ -17,7 +17,7 @@
 ## with this program; if not, write to the Free Software Foundation, Inc.
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# - name: Create NFS Mounts
+# - name: Setup Mount Points
 #   hosts: all
 #   gather_facts: true
 #   user: ubuntu
@@ -34,7 +34,7 @@
 
 #     - name: Create mount point directory
 #       ansible.builtin.file:
-#         path: "{{ nfs_mount_point }}"
+#         path: "{{ mount_point }}"
 #         state: directory
 #         owner: ubuntu
 #         group: ubuntu
@@ -42,15 +42,36 @@
 #       loop:
 #         - /docker/
 #         - /mnt/nvme
+#         - /mnt/nvme/docker_storage
 #         - /mnt/nfs/bt/Storage
 #         - /mnt/nfs/backup
 #         - /mnt/nfs/storage
 #         - /mnt/nfs/torrents
 #       loop_control:
-#         loop_var: nfs_mount_point
+#         loop_var: mount_point
 #       tags:
 #         - nfs
 #         - setup
+
+    # https://evodify.com/change-docker-storage-location/
+    
+
+    # AI just did all of this, and I do not like it, but it works. So be it.
+    # - name: Configure Docker to use new storage location
+    #   ansible.builtin.copy:
+    #     dest: /etc/docker/daemon.json
+    #     content: |
+    #       {
+    #           "data-root": "/mnt/nvme/docker_storage"
+    #       }
+    #     owner: root
+    #     group: root
+    #     mode: '0644'
+    #   notify:
+    #     - Restart Docker
+    #   tags:
+    #     - docker
+    #     - setup
 
     # - name: Mount NFS Shares
     #   ansible.builtin.mount:
@@ -68,11 +89,62 @@
     #       path: /mnt/nfs/torrents
     #     - src: rk1-cluster03:/mnt/backup
     #       path: /mnt/nfs/backup
+    #     - src: blacktower:/mnt/backup
+    #       path: /mnt/nfs/backup
     #   loop_control:
     #     loop_var: nfs_mount_point
     #   tags:
     #     - nfs
     #     - setup
+
+
+
+- name: Add labels to nodes
+  hosts: all
+  gather_facts: true
+  user: ubuntu
+  become: true
+  tasks:
+    - name: Remove all labels assigned to node
+      community.docker.docker_node:
+        hostname: "{{ inventory_hostname }}"
+        labels_state: replace
+      tags:
+        - docker
+        - setup
+        - remove_labels
+
+    - name: Add mylabel to Cluster
+      community.docker.docker_node:
+        hostname: "{{ label.node }}"
+        labels: "{{ label.name }}={{label.value | default('true') }}"
+        labels_state: merge
+      loop:
+        - node: rk1-cluster03
+          name: storage
+          value: true
+        - node: rk1-cluster01
+          name: bigmem
+          value: true
+        - node: rk1-cluster01
+          name: rk1
+          value: true
+        - node: rk1-cluster02
+          name: rk1
+          value: true
+        - node: rk1-cluster03
+          name: rk1
+          value: true
+        - node: rk1-cluster04
+          name: rk1
+          value: true
+      loop_control:
+        loop_var: label
+      tags:
+        - docker
+        - setup
+        - add_labels
+
 
 - name: Deploy Docker Swarm Services
   hosts: rk1-main
@@ -96,26 +168,25 @@
       tags: [pihole]
       ansible.builtin.include_tasks: tasks/pihole.yml
 
-
-    # - name: Setup Discount Bandit
-    #   ansible.builtin.include_tasks: tasks/discount-bandit.yml
-    #   tags: [discount-bandit]
-
-    # - name: Setup Change Detection
-    #   ansible.builtin.include_tasks: tasks/changedetection.yml
-    #   tags: [changedetection]
+    - name: Setup Change Detection
+      ansible.builtin.include_tasks: tasks/changedetection.yml
+      tags: [changedetection]
 
     - name: Setup Wolnut
       ansible.builtin.include_tasks: tasks/wolnut.yml
       tags: [wolnut]
 
-    # - name: Setup Grafana
-    #   ansible.builtin.include_tasks: tasks/grafana.yml
-    #   tags: [grafana]
+    - name: Setup Grafana
+      ansible.builtin.include_tasks: tasks/grafana.yml
+      tags: [grafana]
 
-    # - name: Setup ROMM
-    #   ansible.builtin.include_tasks: tasks/romm.yml
-    #   tags: [romm]
+    - name: Setup Prometheus
+      ansible.builtin.include_tasks: tasks/prometheus.yml
+      tags: [prometheus]
+
+    - name: Setup ROMM
+      ansible.builtin.include_tasks: tasks/romm.yml
+      tags: [romm]
 
     - name: Setup Smokeping
       ansible.builtin.include_tasks: tasks/smokeping.yml
@@ -125,21 +196,17 @@
       ansible.builtin.include_tasks: tasks/homepage.yml
       tags: [homepage]
 
-    - name: Setup Homepage
-      ansible.builtin.include_tasks: tasks/stacks/homepage.yml
-      tags: [homepage-stack]
+    - name: Setup n8n
+      ansible.builtin.include_tasks: tasks/n8n.yml
+      tags: [n8n]
 
-    # - name: Setup n8n
-    #   ansible.builtin.include_tasks: tasks/n8n.yml
-    #   tags: [n8n]
+    - name: Setup paperless-ngx
+      ansible.builtin.include_tasks: tasks/paperless-ngx.yml
+      tags: [paperless_ngx,paperless,paperless_web,paperless_db]
 
-    # Deploy ARR Services {Deluge}
-    # - name: Setup deluge
-    #   ansible.builtin.include_tasks: tasks/arr/deluge.yml
-    #   tags: [deluge]
-    # - name: Setup Arr Stack
-    #   ansible.builtin.include_tasks: tasks/arr/arr.yml
-    #   tags: [arr]
+    - name: Remove ARR from cluster
+      ansible.builtin.include_tasks: tasks/arr/no-arr.yml
+      tags: [no_arr]
 
     - name: Add telegraf user to Docker Group
       ansible.builtin.user:
@@ -168,3 +235,10 @@
     ansible_python_interpreter: /usr/bin/python3
     docker_network: the_ways
     traefik_proxy_network: traefik_proxy
+
+
+### These are in development
+
+    # - name: Setup Homepage
+    #   ansible.builtin.include_tasks: tasks/stacks/homepage.yml
+    #   tags: [homepage-stack]

@@ -68,8 +68,13 @@
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
+    placement:
+        constraints:
+        - 'node.platform.os == linux'
+        - 'node.labels.bigmem == true'
   tags:
     - romm
+    - db
 
 - name: 'Remove Romm'
   community.docker.docker_swarm_service:

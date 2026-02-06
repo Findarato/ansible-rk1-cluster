@@ -76,7 +76,7 @@
         type: 'bind'
         readonly: true
     networks:
-      - "{{ traefik_proxy_network }}"
+      - traefik_proxy
     publish:
     labels:
       traefik.enable: "true"

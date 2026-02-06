@@ -35,14 +35,14 @@ http_addr =
 http_port = 3000
 
 # The public facing domain name used to access grafana from a browser
-domain = grafana.telaranrhiod.space
+# domain = {{ grafana_app_name }}.{{ traefik_domain_rk1 }}
 
 # Redirect to correct domain if host header does not match domain
 # Prevents DNS rebinding attacks
 enforce_domain = false
 
 # The full public facing url
-root_url = %(protocol)s://%(domain)s:%(http_port)s/
+root_url = https://{{ grafana_app_name }}.{{ traefik_domain_rk1 }}/
 
 # Log web requests
 router_logging = false
@@ -63,29 +63,29 @@ cert_key =
 # as seperate properties or as on string using the url propertie.
 
 # Either "mysql", "postgres" or "sqlite3", it's your choice
-type = sqlite3
+#type = sqlite3
 #host = 127.0.0.1:3306
 # For "sqlite3" only, path relative to data_path setting
-path = grafana.db
+#path = grafana.db
 
-#type = mysql
-#host = 10.1.1.5:3306
-{# name = {{ vault_grafana_mysql_database }}
-user = {{ vault_grafana_mysql_user }}
+type = mysql
+host = grafana-db:3306
+name = grafana
+user = grafana-user
 # If the password contains # or ; you have to wrap it with trippel quotes. Ex """#password;"""
-user = {{ vault_grafana_mysql_password }} #}
+password = """{{ vault_grafana_db_password }}"""
 # Use either URL or the previous fields to configure the database
 # Example: mysql://user:secret@host:port/database
 {# url = #}
 
 # Max conn setting default is 0 (mean not set)
-max_conn =
-max_idle_conn =
-max_open_conn =
+;max_conn =
+;max_idle_conn =
+;max_open_conn =
 
 # For "postgres", use either "disable", "require" or "verify-full"
 # For "mysql", use either "true", "false", or "skip-verify".
-ssl_mode = disable
+ssl_mode = false
 
 ca_cert_path =
 client_key_path =
@@ -133,14 +133,14 @@ logging = false
 # No ip addresses are being tracked, only simple counters to track
 # running instances, dashboard and error counts. It is very helpful to us.
 # Change this option to false to disable reporting.
-reporting_enabled = true
+reporting_enabled = false
 
 # Set to false to disable all checks to https://grafana.net
 # for new vesions (grafana itself and plugins), check is used
 # in some UI views to notify that grafana or plugin update exists
 # This option does not cause any auto updates, nor send any information
 # only a GET request to http://grafana.net to get latest versions
-check_for_updates = true
+check_for_updates = false
 
 # Google Analytics universal tracking code, only enabled if you specify an id here
 google_analytics_ua_id =
@@ -215,7 +215,7 @@ disable_login_form = false
 enabled = true
 
 # specify organization name that should be used for unauthenticated users
-org_name = WoT
+;org_name = annonymous
 
 # specify role for unauthenticated users
 org_role = Viewer
@@ -298,7 +298,7 @@ password =
 cert_file =
 key_file =
 skip_verify = false
-from_address = admin@grafana.localhost
+from_address = grafana@mcharryville.space
 from_name = Grafana
 
 [emails]
@@ -319,7 +319,7 @@ filters =
 
 # For "console" mode only
 [log.console]
-level =
+level = error
 
 # log line format, valid options are text, console and json
 format = console
@@ -372,7 +372,7 @@ exchange = grafana_events
 #################################### Dashboard JSON files ################
 [dashboards.json]
 enabled = false
-path = /var/lib/grafana/dashboards
+;path = /var/lib/grafana/dashboards
 
 #################################### Usage Quotas ########################
 [quota]

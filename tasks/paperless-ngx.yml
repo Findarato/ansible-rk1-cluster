@@ -1,0 +1,237 @@
+---
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'paperless_network'
+    driver: 'overlay'
+  tags:
+    - paperless_ngx
+
+# - name: 'Delete directory for container data'
+#   ansible.builtin.file:
+#     path: "{{ docker_data_dir }}/{{ item }}"
+#     owner: '{{ docker_user }}'
+#     group: '{{ docker_user }}'
+#     mode: '0750'
+#     state: 'absent'
+#   with_items:
+#     - 'paperless_ngx_config'
+#     - 'paperless_ngx_data'
+#     - 'paperless_ngx_data/resources'
+#     - 'paperless_ngx_data/assets'
+#     - 'paperless_ngx_data/redis-data'
+#     - 'paperless_ngx_data/mariadb'
+#   tags:
+#     - paperless_ngx
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ item }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0750'
+    state: 'directory'
+  with_items:
+    - 'paperless_ngx_data'
+    - 'paperless_ngx_data/resources'
+    - 'paperless_ngx_data/assets'
+    - 'paperless_ngx_data/redis-data'
+    - 'paperless_ngx_data/data'
+    - 'paperless_ngx_data/media'
+    - 'paperless_ngx_data/library'
+    - 'paperless_ngx_data/export'
+    - 'paperless_ngx_data/consume'
+  tags:
+    - paperless
+    - paperless_ngx
+    - paperless_web
+
+
+- name: 'Remove paperless_ngx-db'
+  community.docker.docker_swarm_service:
+    name: 'paperless_ngx-db'
+    state: absent
+  tags:
+    - paperless_db
+    - paperless
+    - paperless_ngx
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ item }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_user }}'
+    mode: '0777'
+    state: 'directory'
+  with_items:
+    - 'paperless_ngx_data/mariadb'
+  tags:
+    - paperless
+    - paperless_db
+    - paperless_ngx
+    - paperless_ngx_db
+
+- name: 'Remove broker'
+  community.docker.docker_swarm_service:
+    name: 'broker'
+    state: absent
+  tags:
+    - paperless
+    - paperless_ngx
+
+- name: 'Deploy paperless_ngx broker'
+  community.docker.docker_swarm_service:
+    name: 'broker'
+    image: "docker.io/library/redis:{{ paperless_broker_release }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/redis-data"
+        target: '/data'
+        type: 'bind'
+    networks:
+      - 'paperless_network'
+    labels:
+      traefik.enable: "false"
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+        constraints:
+        - 'node.platform.os == linux'
+        - 'node.labels.bigmem == true'
+  tags:
+    - paperless_ngx
+    - paperless
+    - db
+
+- name: 'Deploy paperless_ngx tika'
+  community.docker.docker_swarm_service:
+    name: 'tika'
+    image: docker.io/apache/tika:latest
+    networks:
+      - 'paperless_network'
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  tags:
+    - paperless
+    - paperless_ngx
+    - db
+
+- name: 'Deploy paperless_ngx gotenberg'
+  community.docker.docker_swarm_service:
+    name: 'gotenberg'
+    image: docker.io/gotenberg/gotenberg:8.25
+    networks:
+      - 'paperless_network'
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  tags:
+    - paperless
+    - paperless_ngx
+    - db
+
+- name: 'Deploy paperless_ngx DB'
+  community.docker.docker_swarm_service:
+    name: 'paperless_ngx-db'
+    image: "docker.io/library/mariadb:{{ paperless_db_release }}"
+    env:
+      - "MYSQL_ROOT_PASSWORD={{ vault_paperless_root_password }}" # Use a unique, secure password
+      - "MARIADB_HOST=paperless"
+      - "MARIADB_DATABASE=paperless"
+      - "MARIADB_USER=paperless"
+      - "MARIADB_PASSWORD={{ vault_paperless_password }}"
+      - "MARIADB_ROOT_PASSWORD={{ vault_paperless_root_password }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/mariadb"
+        target: '/var/lib/mysql'
+        type: 'bind'
+    networks:
+      - 'paperless_network'
+    labels:
+      traefik.enable: "false"
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+        constraints:
+        - 'node.platform.os == linux'
+        - 'node.labels.bigmem == true'
+  tags:
+    - paperless
+    - paperless_ngx
+    - paperless_db
+    - db
+
+- name: 'Deploy paperless_ngx'
+  community.docker.docker_swarm_service:
+    name: 'paperless_ngx'
+    image: "ghcr.io/paperless-ngx/paperless-ngx:{{ paperless_ngx_release }}"
+    state: present
+    force_update: true
+    env:
+      - "PAPERLESS_OCR_LANGUAGE=eng"
+      - "PAPERLESS_REDIS=redis://broker:6379"
+      - "PAPERLESS_DBENGINE=mariadb"
+      - "PAPERLESS_DBHOST=paperless_ngx-db"
+      - "PAPERLESS_DBUSER=paperless" # only needed if non-default username
+      - "PAPERLESS_DBPASS={{ vault_paperless_password }}"  # only needed if non-default password
+      - "PAPERLESS_DBPORT=3306"
+      - "PAPERLESS_CONSUMER_POLLING=10"
+      - "PAPERLESS_CONSUMER_RECURSIVE=true"
+      # - PAPERLESS_CONSUMER_IGNORE_PATTERNS:'[".DS_Store", ".DS_STORE", "._*", ".stfolder/*", ".stversions/*", ".localized/*]'
+      - "PAPERLESS_TIKA_ENABLED=1"
+      - "PAPERLESS_TIKA_GOTENBERG_ENDPOINT=http://gotenberg:3000"
+      - "PAPERLESS_TIKA_ENDPOINT=http://tika:9998"
+      - "PAPERLESS_URL=https://{{ paperless_ngx_app_name }}.{{ traefik_domain_rk1 }}"
+      - "PAPERLESS_MEDIA_ROOT=/usr/src/paperless/media"
+      - "PAPERLESS_CONSUMPTION_DIR=/usr/src/paperless/consume"
+      - "PAPERLESS_EXPORT_DIR=/usr/src/paperless/export"
+      # - "PAPERLESS_DATA_DIR=/config"
+    mounts:
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/data"
+        target: '/usr/src/paperless/data'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/media"
+        target: '/usr/src/paperless/media'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/export"
+        target: '/usr/src/paperless/export'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/consume"
+        target: '/usr/src/paperless/consume'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/resources"
+        target: '/paperless_ngx_config/resources'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/assets"
+        target: '/paperless_ngx_config/assets'
+        type: 'bind'
+    networks:
+      - traefik_proxy
+      - 'paperless_network'
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.paperless_ngx.rule: "Host(`{{ paperless_ngx_app_name }}.{{ traefik_domain_rk1 }}`)"
+      traefik.http.routers.paperless_ngx.tls: "true"
+      traefik.http.routers.paperless_ngx.entrypoints: websecure
+      traefik.http.services.paperless_ngx.loadbalancer.server.port: '8000'
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+  tags:
+    - paperless
+    - paperless_ngx
+    - paperless_web
+
+
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:8000"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5

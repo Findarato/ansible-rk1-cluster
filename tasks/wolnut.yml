@@ -14,14 +14,14 @@
     group: 'ubuntu'
     mode: '0755'
   loop:
-    - 'wolnut_data'
+    - 'wolnut-data'
   loop_control:
     loop_var: 'dir'
 
 - name: 'Place files for Wolnut'
   ansible.builtin.template:
     src: 'wolnut/config.yaml.j2'
-    dest: "{{ docker_data_dir }}/wolnut_data/config.yaml"
+    dest: "{{ docker_data_dir }}/wolnut-data/config.yaml"
     owner: 'ubuntu'
     group: 'ubuntu'
     mode: '0755'
@@ -32,7 +32,7 @@
     image: "hardwarehaven/wolnut:latest"
     force_update: true
     mounts:
-      - source: "{{ docker_data_dir }}/wolnut_data/config.yaml"
+      - source: "{{ docker_data_dir }}/wolnut-data/config.yaml"
         target: '/config/config.yaml'
         type: 'bind'
     mode: 'replicated'

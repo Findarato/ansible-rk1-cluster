@@ -1,0 +1,174 @@
+---
+
+## Title: ~/Documents/src/Ansible/ansible-rk1-cluster/tasks/grafana.yml
+## Description: All tasks to deploy and manage Grafana in Docker Swarm
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-10-12 17:01:15
+## 
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+- name: 'Create network'
+  community.docker.docker_network:
+    name: 'prometheus_backend'
+    driver: 'overlay'
+  tags:
+    - prometheus
+
+- name: 'Create directory for container data'
+  ansible.builtin.file:
+    path: "{{ docker_data_dir }}/{{ dir }}"
+    owner: '{{ docker_user }}'
+    group: '{{ docker_group }}'
+    mode: '0777'
+    state: 'directory'
+  loop:
+    - 'prometheus-data'
+    - 'prometheus-config'
+
+  loop_control:
+    loop_var: 'dir'
+  tags:
+    - prometheus
+
+- name: 'Remove prometheus'
+  community.docker.docker_swarm_service:
+    name: 'prometheus'
+    state: absent
+    replicas: 0
+  tags:
+    - prometheus
+    - stop_all_services
+
+- name: Copy configuration file
+  template:
+    src: prometheus/prometheus.yml.j2
+    dest: "{{ docker_data_dir }}/prometheus-config/prometheus.yml"
+    mode: '0644'
+    owner: '{{ docker_user }}'
+    group: '{{ docker_group }}'
+  tags:
+    - prometheus
+
+- name: 'Deploy prometheus'
+  community.docker.docker_swarm_service:
+    name: 'prometheus'
+    image: "quay.io/prometheus/prometheus:{{ prometheus_release }}"
+    hostname: prometheus
+    force_update: true
+    env:
+      - "TZ=America/Chicago"
+    mounts:
+      - source: "{{ docker_data_dir }}/prometheus-data/"
+        target: '/prometheus'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/prometheus-config/prometheus.yml"
+        target: '/etc/prometheus/prometheus.yml'
+        readonly: true
+        type: 'bind'
+      - source: '/etc/localtime'
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
+      - target: '/tmp'
+        type: 'tmpfs'
+    networks:
+      - traefik_proxy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.prometheus.rule: Host(`{{ prometheus_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.prometheus.tls: "true"
+      traefik.http.routers.prometheus.entrypoints: websecure
+      traefik.http.services.prometheus.loadbalancer.server.port: "9090"
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+        - 'node.labels.bigmem == true'
+  no_log: "{{ not docker_service_debug }}"
+  tags:
+    - prometheus
+
+- name: 'Deploy cadvisor'
+  community.docker.docker_swarm_service:
+    name: 'cadvisor'
+    image: "gcr.io/cadvisor/cadvisor:{{ cadvisor_release }}"
+    hostname: cadvisor
+    # state: absent
+    force_update: true
+    env:
+      - "TZ=America/Chicago"
+    mounts:
+      - source: "{{ docker_data_dir }}/prometheus-data/"
+        target: '/prometheus'
+        type: 'bind'
+      - source: '/var/run/docker.sock'
+        target: '/var/run/docker.sock'
+        type: 'bind'
+        readonly: true
+      - source: '/'
+        target: '/rootfs'
+        type: 'bind'
+        readonly: true
+      - source: '/var/run'
+        target: '/var/run'
+        type: 'bind'
+        readonly: true
+      - source: '/sys'
+        target: '/sys'
+        type: 'bind'
+        readonly: true
+      - source: '/var/lib/docker'
+        target: '/var/lib/docker'
+        type: 'bind'
+        readonly: true
+      - source: '/etc/localtime'
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
+      - target: '/tmp'
+        type: 'tmpfs'
+    networks:
+      - traefik_proxy
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.prometheus.rule: Host(`{{ prometheus_app_name }}.{{ traefik_domain_rk1 }}`)
+      traefik.http.routers.prometheus.tls: "true"
+      traefik.http.routers.prometheus.entrypoints: websecure
+      traefik.http.services.prometheus.loadbalancer.server.port: "9090"
+      traefik.http.routers.prometheus.tls.certresolver: "cloudflare"
+    mode: 'global'
+    # replicas: 0
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+        - 'node.platform.arch == x86_64'
+  no_log: "{{ not docker_service_debug }}"
+  tags:
+    - prometheus
+
+
+# docker service create --name cadvisor -l prometheus-job=cadvisor
+#     --mode=global --publish published=8080,target=8080,mode=host
+#     --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock,ro
+#     --mount type=bind,src=/,dst=/rootfs,ro
+#     --mount type=bind,src=/var/run,dst=/var/run
+#     --mount type=bind,src=/sys,dst=/sys,ro
+#     --mount type=bind,src=/var/lib/docker,dst=/var/lib/docker,ro
+#     google/cadvisor -docker_only

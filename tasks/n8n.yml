@@ -69,7 +69,6 @@
   tags:
     - n8n
 
-
 - name: 'Deploy n8n_database'
   community.docker.docker_swarm_service:
     name: 'n8n-db'
@@ -95,6 +94,7 @@
     placement:
       constraints:
         - 'node.platform.os == linux'
+        - 'node.labels.bigmem == true'
   no_log: "{{ not docker_service_debug }}"
   tags:
     - n8n
@@ -133,8 +133,8 @@
         target: '/home/node/.n8n'
         type: 'bind'
     networks:
+      - "traefik_proxy"
       - 'n8n_backend'
-      - "{{ traefik_proxy_network }}"
     publish:
     labels:
       traefik.enable: "true"

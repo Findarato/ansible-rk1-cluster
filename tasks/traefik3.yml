@@ -21,7 +21,7 @@
 
 - name: 'Create network'
   community.docker.docker_network:
-    name: "{{ traefik_proxy_network }}"
+    name: traefik_proxy
     driver: 'overlay'
     internal: false
     attachable: true
@@ -55,8 +55,8 @@
 
 - name: 'Deploy Traefik YML Extra config'
   ansible.builtin.copy:
-    src: 'files/traefik3/config.yml'
-    dest: "{{ docker_data_dir }}/traefik3_data/config.yml"
+    src: 'files/traefik3/dynamic_config/'
+    dest: "{{ docker_data_dir }}/traefik3_data/dynamic_config/"
     owner: 'root'
     group: 'root'
     mode: '0644'
@@ -93,6 +93,7 @@
       traefik.http.routers.websecure.tls.certresolver: "cloudflare"
       traefik.http.routers.websecure.tls.domains[0].main: "*.mcharryville.space"
       traefik.http.routers.websecure.tls.domains[0].sans: "*.rk1.mcharryville.space"
+      traefik.http.routers.websecure.tls.domains[1].sans: "*.wled.mcharryville.space"
       traefik.http.routers.websecure.service[0]: "api@internal"
       traefik.http.routers.websecure.service[1]: "ping@internal"
       traefik.http.routers.whoami.tls.certresolver: "cloudflare"
@@ -113,18 +114,15 @@
         target: '/certs/'
         type: 'bind'
         readonly: false
-      - source: '{{ docker_data_dir }}/traefik3_data/config.yml'
-        target: '/config.yml'
+      - source: '{{ docker_data_dir }}/traefik3_data/dynamic_config/'
+        target: '/dynamic_config/'
         type: 'bind'
         readonly: true
     networks:
-      - "{{ traefik_proxy_network }}"
-    dns:
-      - "{{ public_dns_servers[0] }}"
-      - "{{ public_dns_servers[1] }}"
-    # mode: 'global'
-    mode: 'replicated'
-    replicas: 1
+      - traefik_proxy
+    mode: 'global'
+    # mode: 'replicated'
+    # replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
     publish:
@@ -154,7 +152,6 @@
     placement:
       constraints:
         - node.role == manager
-        - node.hostname == rk1-cluster02
   tags:
     - traefik
 
@@ -173,7 +170,7 @@
       traefik.http.routers.whoami.tls.certresolver: cloudflare
       traefik.http.services.whoami.loadbalancer.server.port: "80"
     mode: 'replicated'
-    replicas: 8
+    replicas: 4
     restart_config:
       condition: "{{ restart_condition }}"
 

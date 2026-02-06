@@ -53,7 +53,7 @@
         target: '/data'
         type: 'bind'
     networks:
-      - "{{ traefik_proxy_network}}"
+      - traefik_proxy
       - 'portainer_agent_network'
     labels:
       traefik.enable: "true"

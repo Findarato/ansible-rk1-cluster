@@ -13,3 +13,8 @@
   ansible.builtin.service:
     name: systemd-resolved
     state: restarted
+
+- name: Restart Docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted

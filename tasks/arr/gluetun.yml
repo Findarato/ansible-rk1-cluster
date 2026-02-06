@@ -1,0 +1,73 @@
+---
+
+## Title: tasks/arr/deluge.yml
+## Description: Deploy deluge to a docker swarm
+## Author: Joseph Harry <findarato@gmail.com>
+## Copyright: Joseph Harry <findarato@gmail.com>
+## Date: 2025-10-26 15:35:12
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 2 of the License, or
+## (at your option) any later version.
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## You should have received a copy of the GNU General Public License along
+## with this program; if not, write to the Free Software Foundation, Inc.
+## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+#      ▄████  ██▓     █    ██ ▓█████▄▄▄█████▓ █    ██  ███▄    █ 
+#     ██▒ ▀█▒▓██▒     ██  ▓██▒▓█   ▀▓  ██▒ ▓▒ ██  ▓██▒ ██ ▀█   █ 
+#    ▒██░▄▄▄░▒██░    ▓██  ▒██░▒███  ▒ ▓██░ ▒░▓██  ▒██░▓██  ▀█ ██▒
+#    ░▓█  ██▓▒██░    ▓▓█  ░██░▒▓█  ▄░ ▓██▓ ░ ▓▓█  ░██░▓██▒  ▐▌██▒
+#    ░▒▓███▀▒░██████▒▒▒█████▓ ░▒████▒ ▒██▒ ░ ▒▒█████▓ ▒██░   ▓██░
+#     ░▒   ▒ ░ ▒░▓  ░░▒▓▒ ▒ ▒ ░░ ▒░ ░ ▒ ░░   ░▒▓▒ ▒ ▒ ░ ▒░   ▒ ▒ 
+#      ░   ░ ░ ░ ▒  ░░░▒░ ░ ░  ░ ░  ░   ░    ░░▒░ ░ ░ ░ ░░   ░ ▒░
+#    ░ ░   ░   ░ ░    ░░░ ░ ░    ░    ░       ░░░ ░ ░    ░   ░ ░ 
+#          ░     ░  ░   ░        ░  ░           ░              ░ 
+
+- name: Create and Update gluetun Container
+  community.docker.docker_swarm_service:
+    name: gluetun
+    image: "qmcgaw/gluetun:{{ gluetun_release}}"
+    hostname: gluetun
+    force_update: true
+    env:
+      - "TZ=America/Chicago"
+      - "VPN_SERVICE_PROVIDER=mullvad"
+      - "VPN_TYPE=wireguard"
+      - "WIREGUARD_PRIVATE_KEY={{ gluetun_private_key }}"
+      - "WIREGUARD_ADDRESSES={{ gluetun_addresses }}"
+      - "SERVER_COUNTRIES={{ gluetun_countries }}"
+      - "SERVER_CITIES={{ gluetun_cities }}"
+    mounts:
+      - source: '/etc/localtime'
+        target: '/etc/localtime'
+        type: 'bind'
+        readonly: true
+      - source: '/dev/net/tun'
+        target: '/dev/net/tun'
+        type: 'bind'
+    networks:
+      - 'traefik_proxy' # Connect to traefik for routing
+      - 'gluetun_private' # Private network for gluetun
+    labels:
+      # traefik.enable: "true"
+      # traefik.http.routers.deluge.rule: Host(`{{ deluge_app_name }}.{{ traefik_domain_rk1 }}`)
+      # traefik.http.routers.deluge.tls: "true"
+      # traefik.http.routers.deluge.entrypoints: websecure
+      # traefik.http.services.deluge.loadbalancer.server.port: "8112"
+      # traefik.tcp.services.deluge-tcp.loadbalancer.server.port: "58846"
+    mode: 'replicated'
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    cap_add:
+      - NET_ADMIN
+  tags:
+    - deluge
+    - gluetun
+    - arr

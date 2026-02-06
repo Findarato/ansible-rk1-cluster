@@ -30,57 +30,59 @@
   ansible.builtin.file:
     path: "{{ docker_data_dir }}/{{ dir }}"
     owner: '{{ docker_user }}'
-    group: '{{ docker_user }}'
-    mode: '0755'
+    group: '{{ docker_group }}'
+    mode: '0777'
     state: 'directory'
   loop:
-    - 'grafana-config'
     - 'grafana-data'
     - 'grafana-data/db'
+    - 'grafana-data/data'
+    - 'grafana-data/dashboards'
+    - 'grafana-config/'
+    - 'grafana-config/etc'
   loop_control:
     loop_var: 'dir'
   tags:
     - grafana
 
-- name: Copy configuration file
-  template:
-    src: grafana/defaults.ini.j2
-    dest: "{{ docker_data_dir }}/grafana-config/grafana.ini"
-    mode: '0644'
-    owner: "472"
-    group: "472"
+- name: 'Remove grafana_db'
+  community.docker.docker_swarm_service:
+    name: 'grafana-db'
+    state: absent
   tags:
     - grafana
 
-# - name: 'Deploy grafana_database'
-#   community.docker.docker_swarm_service:
-#     name: 'grafana-db'
-#     image: "mysql:{{ grafana_db_release }}"
-#     hostname: grafana_db
-#     force_update: true
-#     env:
-#       - "MYSQL_USER={{ grafana_db_user }}"
-#       - "MYSQL_PASSWORD={{ grafana_db_password | default('superpassword') }}"
-#       - "MYSQL_ROOT_PASSWORD={{ grafana_db_root_password | default('superpassword') }}"
-
-#     mounts:
-#       - source: "{{ docker_data_dir }}/n8n-data/postgres/data"
-#         target: '/var/lib/postgresql/data'
-#         type: 'bind'
-#     networks:
-#       - 'grafana_backend'
-#     mode: 'replicated'
-#     replicas: 1
-#     restart_config:
-#       condition: "{{ restart_condition }}"
-#     placement:
-#       constraints:
-#         - 'node.platform.os == linux'
-#   no_log: "{{ not docker_service_debug }}"
-#   tags:
-#     - grafana
-#     - grafana_deploy
-#     - grafana_database
+- name: 'Deploy grafana DB'
+  community.docker.docker_swarm_service:
+    name: 'grafana-db'
+    image: lscr.io/linuxserver/mariadb:latest
+    hostname: grafana-db
+    env:
+      - "PUID=1000"
+      - "PGID=1000"
+      - "TZ=America/Chicago"
+      - "MYSQL_ROOT_PASSWORD={{ vault_grafana_db_root_password }}" # Use a unique, secure password
+      - "MYSQL_DATABASE=grafana"
+      - "MYSQL_USER=grafana-user"
+      - "MYSQL_PASSWORD={{ vault_grafana_db_password }}"
+    mounts:
+      - source: "{{ docker_data_dir }}/grafana-data/db"
+        target: '/config'
+        type: 'bind'
+    networks:
+      - 'grafana_backend'
+    labels:
+      traefik.enable: "false"
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "{{ restart_condition }}"
+    placement:
+      constraints:
+        - 'node.platform.os == linux'
+        - 'node.labels.bigmem == true'
+  tags:
+    - grafana
 
 - name: 'Remove grafana'
   community.docker.docker_swarm_service:
@@ -91,41 +93,53 @@
     - grafana
     - stop_all_services
 
+- name: Copy configuration file
+  template:
+    src: grafana/defaults.ini.j2
+    dest: "{{ docker_data_dir }}/grafana-config/etc/grafana.ini"
+    mode: '0644'
+    owner: '{{ docker_user }}'
+    group: '{{ docker_group }}'
+  tags:
+    - grafana
+
 - name: 'Deploy grafana'
   community.docker.docker_swarm_service:
     name: 'grafana'
-    image: "grafana/grafana-oss:{{ grafana_release }}"
+    image: "grafana/grafana:{{ grafana_release }}"
     hostname: grafana
     force_update: true
     env:
       - "ServerName=grafana"
-      - "PUID=1000"
-      - "PGID=1000"
       - "TZ=America/Chicago"
-      - "GRAFANA_ALLOWED_HOSTS={{ grafana_app_name }}.{{ traefik_domain_rk1 }}"
+      - "GF_PLUGINS_PREINSTALL=grafana-clock-panel,grafana-polystat-panel"
+      - "GF_PATHS_CONFIG=/etc/grafana/grafana.ini"
     mounts:
-      - source: "{{ docker_data_dir }}/grafana-config"
-        target: '/etc/grafana'
-        type: 'bind'
-      - source: "{{ docker_data_dir }}/grafana-data/"
+      - source: "{{ docker_data_dir }}/grafana-data/data"
         target: '/var/lib/grafana'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/grafana-config/etc/grafana.ini"
+        target: '/etc/grafana/grafana.ini'
+        readonly: true
         type: 'bind'
       - source: '/etc/localtime'
         target: '/etc/localtime'
         type: 'bind'
         readonly: true
+      - target: '/tmp'
+        type: 'tmpfs'
     networks:
-      - 'grafana_backend'
-      - "{{ traefik_proxy_network }}"
-    publish:
+      - traefik_proxy
+      - grafana_backend
     labels:
       traefik.enable: "true"
       traefik.http.routers.grafana.rule: Host(`{{ grafana_app_name }}.{{ traefik_domain_rk1 }}`)
       traefik.http.routers.grafana.tls: "true"
       traefik.http.routers.grafana.entrypoints: websecure
       traefik.http.services.grafana.loadbalancer.server.port: "3000"
+      traefik.http.routers.grafana.tls.certresolver: "cloudflare"
     mode: 'replicated'
-    replicas: 2
+    replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
     placement:
@@ -134,10 +148,3 @@
   no_log: "{{ not docker_service_debug }}"
   tags:
     - grafana
-    - grafana_deploy
-    - grafana_config
-    - grafana_network
-    - grafana_service
-    - grafana_data
-    - grafana_volume
-    - grafana_container
