@@ -34,13 +34,11 @@ docker_group: ubuntu
 
 restart_condition: 'on-failure'
 
-traefik_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
-traefik_domain: 'mcharryville.space'              # Subdomain to put all services under
 traefik_selfsign: false                           # Selfsign the used SSL certificate
 traefik_version: '2.11'
 
-traefik3_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
-traefik3_domain: 'mcharryville.space'              # Subdomain to put all services under
+traefik_domain_rk1: 'rk1.mcharryville.space'      # Subdomain to put all services under
+traefik_domain: 'mcharryville.space'              # Subdomain to put all services under
 traefik3_selfsign: false                           # Selfsign the used SSL certificate
 traefik3_version: '3.6'
 

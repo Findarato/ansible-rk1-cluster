@@ -97,7 +97,6 @@
       traefik.http.routers.websecure.service[0]: "api@internal"
       traefik.http.routers.websecure.service[1]: "ping@internal"
       traefik.http.routers.whoami.tls.certresolver: "cloudflare"
-      
     env:
       # - "CF_API_EMAIL={{ vault_cf_api_email }}"   # Do not use if using token
       # - "CF_API_KEY={{ vault_cf_api_key }}"       # Do not use if using token

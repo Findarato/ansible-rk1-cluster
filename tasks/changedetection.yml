@@ -98,7 +98,8 @@
       traefik.http.routers.changedetection.entrypoints: websecure
       traefik.http.services.changedetection.loadbalancer.server.port: "5000"
     mode: 'replicated'
-    replicas: 1
+    state: absent
+    replicas: 0
     restart_config:
       condition: "{{ restart_condition }}"
   no_log: "{{ not docker_service_debug }}"
