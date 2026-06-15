@@ -1,9 +1,11 @@
 ---
 all:
   children:
-    rk1-cluster:
+    rk1_cluster:
+      vars:
+        install_nfs_server: true
       children:
-        rk1-main:
+        rk1_main:
           hosts:
             rk1-cluster02:
         rk1_secondary:
@@ -12,6 +14,5 @@ all:
             rk1-cluster02:
             rk1-cluster03:
             rk1-cluster04:
-    vars:
-      install_nfs_server: true
+
     

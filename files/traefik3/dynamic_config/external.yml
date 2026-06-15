@@ -1,5 +1,18 @@
 http:
   routers:
+    # containers
+    ct-pihole:
+      rule: "Host(`pihole01.mcharryville.space`)"
+      tls: true
+      entryPoints:
+        - websecure
+      service: ct-pihole
+    ct-dns01:
+      rule: "Host(`admin.dns01.mcharryville.space`)"
+      tls: true
+      entryPoints:
+        - websecure
+      service: ct-dns01
     # WLED Instances for Home Assistant Integration
     library-window:
       rule: "Host(`wled-librarywindow.wled.mcharryville.space`)"
@@ -13,19 +26,19 @@ http:
       entryPoints:
         - websecure
       service: garage-lights
-    ct-pihole:
-      rule: "Host(`pihole01.mcharryville.space`)"
-      tls: true
-      entryPoints:
-        - websecure
-      service: ct-pihole
+
 
   services:
-    # WLED Instances
+  # Containers
     ct-pihole:
       loadBalancer:
         servers:
           - url: "http://ct-pihole.mcharryville.space"
+    ct-dns01:
+      loadBalancer:
+        servers:
+          - url: "http://10.1.1.26:5380/"
+    # WLED Instances
     library-window:
       loadBalancer:
         servers:

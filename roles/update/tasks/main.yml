@@ -6,13 +6,22 @@
 #     src: 00aptproxy
 #     dest: /etc/apt/apt.conf.d/00aptproxy
 
-- name: Ensure apt cache is setup
-  ansible.builtin.template:
-    src: 00aptproxy.j2
-    dest: /etc/apt/apt.conf.d/00aptproxy
-    owner: root
-    group: root
-    mode: '0644'
+# - name: Ensure apt cache is setup
+#   ansible.builtin.template:
+#     src: 00aptproxy.j2
+#     dest: /etc/apt/apt.conf.d/00aptproxy
+#     owner: root
+#     group: root
+#     mode: '0644'
+
+- name: Remove apt cahcer-ng configuration
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/00aptproxy
+    state: absent
+
+- name: Include influx data tasks
+  ansible.builtin.include_tasks: telegraf.yml
+  tags: [telegraf, influxdb]
 
 - name: Update system
   ansible.builtin.apt:

@@ -64,7 +64,7 @@
     mode: 'replicated'
     state: absent
     replicas: 0
-    restart_config:
+sssssssssssssssss    restart_config:
       condition: "{{ restart_condition }}"
   tags:
   - discountbandit

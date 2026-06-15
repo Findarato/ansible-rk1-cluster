@@ -103,11 +103,11 @@
     #       - ubuntu
     # - role: geerlingguy.docker
     #   tags: [docker, install]
-    # - role: update
-    #   vars:
-    #     update_apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
-    #   throttle: 1
-    #   tags: [apt, ubuntu]
+    - role: update
+      vars:
+        update_apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
+      throttle: 1
+      tags: [apt,update]
     # - role: docker-swarm
     #   tags: [docker, swarm, docker-swarm]
     # - role: keepalive

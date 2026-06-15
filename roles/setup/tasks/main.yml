@@ -37,3 +37,26 @@
       - unzip
     state: present
   tags: [setup, packages]
+
+- name: Update system
+  ansible.builtin.apt:
+    update_cache: yes
+  tags: [setup, packages]
+
+- name: Update all packages to their latest version
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+  tags: [setup, packages]
+
+- name: Remove useless packages from the cache
+  ansible.builtin.apt:
+    autoclean: yes
+  tags: [setup, packages]
+
+
+- name: Remove dependencies that are no longer required and purge their configuration files
+  ansible.builtin.apt:
+    autoremove: yes
+    purge: true
+  tags: [setup, packages]

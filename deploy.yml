@@ -147,7 +147,7 @@
 
 
 - name: Deploy Docker Swarm Services
-  hosts: rk1-main
+  hosts: rk1_main
   gather_facts: true
   user: ubuntu
   become: true
@@ -168,9 +168,9 @@
       tags: [pihole]
       ansible.builtin.include_tasks: tasks/pihole.yml
 
-    - name: Setup Change Detection
-      ansible.builtin.include_tasks: tasks/changedetection.yml
-      tags: [changedetection]
+    # - name: Setup Change Detection
+    #   ansible.builtin.include_tasks: tasks/changedetection.yml
+    #   tags: [changedetection]
 
     - name: Setup Wolnut
       ansible.builtin.include_tasks: tasks/wolnut.yml
@@ -204,9 +204,9 @@
       ansible.builtin.include_tasks: tasks/paperless-ngx.yml
       tags: [paperless_ngx,paperless,paperless_web,paperless_db]
 
-    - name: Remove ARR from cluster
-      ansible.builtin.include_tasks: tasks/arr/no-arr.yml
-      tags: [no_arr]
+    # - name: Remove ARR from cluster
+    #   ansible.builtin.include_tasks: tasks/arr/no-arr.yml
+    #   tags: [no_arr]
 
     - name: Add telegraf user to Docker Group
       ansible.builtin.user:
