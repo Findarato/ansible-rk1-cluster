@@ -79,6 +79,10 @@ homepage_release: 'latest'                         # What version of the contain
 #ROMM
 romm_app_name: romm
 
+# Docer Volume Backup
+docker_volume_backup_release: latest
+docker_volume_backup_directory: /mnt/nfs/backup/docker_volume_backup
+
 
 # Logging and Graphing Stack
 

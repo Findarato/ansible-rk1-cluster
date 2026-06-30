@@ -105,46 +105,47 @@
   user: ubuntu
   become: true
   tasks:
-    - name: Remove all labels assigned to node
-      community.docker.docker_node:
-        hostname: "{{ inventory_hostname }}"
-        labels_state: replace
-      tags:
-        - docker
-        - setup
-        - remove_labels
-
-    - name: Add mylabel to Cluster
-      community.docker.docker_node:
-        hostname: "{{ label.node }}"
-        labels: "{{ label.name }}={{label.value | default('true') }}"
-        labels_state: merge
-      loop:
-        - node: rk1-cluster03
-          name: storage
-          value: true
-        - node: rk1-cluster01
-          name: bigmem
-          value: true
-        - node: rk1-cluster01
-          name: rk1
-          value: true
-        - node: rk1-cluster02
-          name: rk1
-          value: true
-        - node: rk1-cluster03
-          name: rk1
-          value: true
-        - node: rk1-cluster04
-          name: rk1
-          value: true
-      loop_control:
-        loop_var: label
-      tags:
-        - docker
-        - setup
-        - add_labels
-
+    # - name: Remove all labels assigned to node
+    #   community.docker.docker_node:
+    #     hostname: "{{ inventory_hostname }}"
+    #     labels_state: replace
+    #   tags:
+    #     - docker
+    #     - setup
+    #     - remove_labels
+    # - name: Add mylabel to Cluster
+    #   community.docker.docker_node:
+    #     hostname: "{{ label.node }}"
+    #     labels: "{{ label.name }}={{label.value | default('true') }}"
+    #     labels_state: merge
+    #   loop:
+    #     - node: rk1-cluster03
+    #       name: storage
+    #       value: true
+    #     - node: rk1-cluster01
+    #       name: bigmem
+    #       value: true
+    #     - node: rk1-cluster01
+    #       name: rk1
+    #       value: true
+    #     - node: rk1-cluster02
+    #       name: rk1
+    #       value: true
+    #     - node: rk1-cluster03
+    #       name: rk1
+    #       value: true
+    #     - node: rk1-cluster04
+    #       name: rk1
+    #       value: true
+    #   loop_control:
+    #     loop_var: label
+    #   tags:
+    #     - docker
+    #     - setup
+    #     - add_labels
+  roles:
+    - role: setup
+      tags: [setup, packages]
 
 - name: Deploy Docker Swarm Services
   hosts: rk1_main
@@ -223,8 +224,6 @@
         groups: docker
         append: true
   roles:
-    - role: setup
-      tags: [setup, packages]
     - role: geerlingguy.pip
       tags: [python, pip]
   vars_files:

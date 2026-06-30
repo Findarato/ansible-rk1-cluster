@@ -153,6 +153,7 @@
       - 'paperless_network'
     labels:
       traefik.enable: "false"
+      docker-volume-backup.stop-during-backup: "true"
     mode: replicated
     replicas: 1
     restart_config:
@@ -220,10 +221,75 @@
       traefik.http.routers.paperless_ngx.tls: "true"
       traefik.http.routers.paperless_ngx.entrypoints: websecure
       traefik.http.services.paperless_ngx.loadbalancer.server.port: '8000'
+      docker-volume-backup.stop-during-backup: "true"
     mode: replicated
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
+  tags:
+    - paperless
+    - paperless_ngx
+    - paperless_web
+
+
+- name: 'Create directory for backup Data'
+  ansible.builtin.file:
+    path: "{{ docker_volume_backup_directory }}/{{ item }}"
+    owner: 'root'
+    group: 'root'
+    mode: '0750'
+    state: 'directory'
+  with_items:
+    - 'paperless_ngx_data'
+  tags:
+    - paperless
+    - paperless_ngx
+    - paperless_web
+
+
+# docker_volume_backup
+
+- name: 'Deploy paperless_ngx Backup'
+  community.docker.docker_swarm_service:
+    name: 'paperless_ngx_backup'
+    image: "ghcr.io/offen/docker-volume-backup:{{ docker_volume_backup_release }}"
+    state: present
+    force_update: true
+    mounts:
+      - source: '/var/run/docker.sock'  # Mount docker socket
+        target: '/var/run/docker.sock'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/data"
+        target: '/backup/paperless/data'
+        type: 'bind'
+
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/mariadb"
+        target: '/backup/paperless/mysql'
+        type: 'bind'
+
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/media"
+        target: '/backup/paperless/media'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/export"
+        target: '/backup/paperless/export'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/resources"
+        target: '/backup/paperless/config/resources'
+        type: 'bind'
+      - source: "{{ docker_data_dir }}/paperless_ngx_data/assets"
+        target: '/backup/paperless/config/assets'
+        type: 'bind'
+      - source: "{{ docker_volume_backup_directory }}/paperless_ngx_data/paperless_ngx_data"
+        target: '/archive'
+        type: 'bind'
+
+    env_files: backup/backup.env
+    networks:
+      - 'paperless_network'
+    mode: replicated
+    replicas: 1
+    restart_config:
+      condition: "always"
   tags:
     - paperless
     - paperless_ngx

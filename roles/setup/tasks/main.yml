@@ -38,15 +38,11 @@
     state: present
   tags: [setup, packages]
 
-- name: Update system
-  ansible.builtin.apt:
-    update_cache: yes
-  tags: [setup, packages]
-
 - name: Update all packages to their latest version
   ansible.builtin.apt:
     name: "*"
     state: latest
+    update_cache: yes
   tags: [setup, packages]
 
 - name: Remove useless packages from the cache
