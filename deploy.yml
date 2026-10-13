@@ -201,6 +201,10 @@
       ansible.builtin.include_tasks: tasks/n8n.yml
       tags: [n8n]
 
+    - name: Setup signal-api
+      ansible.builtin.include_tasks: tasks/signal-api.yml
+      tags: [signal]
+
     - name: Setup paperless-ngx
       ansible.builtin.include_tasks: tasks/paperless-ngx.yml
       tags: [paperless_ngx,paperless,paperless_web,paperless_db]

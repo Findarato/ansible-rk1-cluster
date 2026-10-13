@@ -115,6 +115,10 @@ n8n_db_name: 'n8n'
 n8n_db_password: "{{ vault_n8n_db_password }}"
 n8n_db_non_root_user: "{{ vault_n8n_db_non_root_user }}"
 
+
+signal_cli_release: 'latest'                       # What version of the container to use
+signal_app_name: signal-api
+
               # What version of the container to use
 
 

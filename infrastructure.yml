@@ -20,6 +20,18 @@
         src: /home/ubuntu/.ssh/id_ed25519.pub
       register: slurped_key
 
+    - name: Create ansible user
+      ansible.builtin.user:
+        name: ansible
+        shell: /bin/bash
+        state: present
+        create_home: yes
+        generate_ssh_key: yes
+        ssh_key_type: ed25519
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id_ed25519
+
+
     - name: Set authorized key for user ubuntu
       ansible.builtin.debug: msg="{{ slurped_key['content'] | b64decode }}"
   tasks:
@@ -103,11 +115,12 @@
     #       - ubuntu
     # - role: geerlingguy.docker
     #   tags: [docker, install]
+    - role: setup
+      tags: [setup]
     - role: update
-      vars:
-        update_apt_proxy_path: http://apt-cacher-ng.mcharryville.space:3142/
       throttle: 1
       tags: [apt,update]
+
     # - role: docker-swarm
     #   tags: [docker, swarm, docker-swarm]
     # - role: keepalive

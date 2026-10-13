@@ -19,10 +19,6 @@
     path: /etc/apt/apt.conf.d/00aptproxy
     state: absent
 
-- name: Include influx data tasks
-  ansible.builtin.include_tasks: telegraf.yml
-  tags: [telegraf, influxdb]
-
 - name: Update system
   ansible.builtin.apt:
     update_cache: true

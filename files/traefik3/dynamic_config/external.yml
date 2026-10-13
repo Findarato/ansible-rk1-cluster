@@ -26,6 +26,12 @@ http:
       entryPoints:
         - websecure
       service: garage-lights
+    tvstand-lights:
+      rule: "Host(`wled-tvstand.wled.mcharryville.space`)"
+      tls: true
+      entryPoints:
+        - websecure
+      service: tvstand-lights
 
 
   services:
@@ -51,4 +57,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://wled-parents.iot.mcharryville.space"
+    tvstand-lights:
+      loadBalancer:
+        servers:
+          - url: "http://10.1.99.2"
 

@@ -50,9 +50,13 @@
     autoclean: yes
   tags: [setup, packages]
 
-
 - name: Remove dependencies that are no longer required and purge their configuration files
   ansible.builtin.apt:
     autoremove: yes
     purge: true
   tags: [setup, packages]
+
+
+- name: Setup prometheus node exporter
+  import_tasks: prometheus-exporter.yml
+  tags: [setup, prometheus]
