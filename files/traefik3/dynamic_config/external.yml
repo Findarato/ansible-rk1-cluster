@@ -18,17 +18,14 @@ http:
       rule: "Host(`wled-librarywindow.wled.mcharryville.space`)"
       entryPoints:
         - websecure
-      tls: true
       service: library-window
     garage-lights:
       rule: "Host(`wled-garage.wled.mcharryville.space`)"
-      tls: true
       entryPoints:
         - websecure
       service: garage-lights
     tvstand-lights:
       rule: "Host(`wled-tvstand.wled.mcharryville.space`)"
-      tls: true
       entryPoints:
         - websecure
       service: tvstand-lights
