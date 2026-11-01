@@ -20,7 +20,7 @@
     - 'romm_data/resources'
     - 'romm_data/assets'
     - 'romm_data/redis-data'
-    - 'romm_config/mariadb'
+    - 'romm_data/mariadb'
   tags:
     - romm
 
@@ -44,6 +44,13 @@
   tags:
     - romm
 
+- name: 'Remove Romm'
+  community.docker.docker_swarm_service:
+    name: 'romm'
+    state: absent
+  tags:
+    - romm
+
 - name: 'Deploy Romm DB'
   community.docker.docker_swarm_service:
     name: 'romm-db'
@@ -57,7 +64,7 @@
       - MYSQL_USER=romm-user
       - MYSQL_PASSWORD="{{ vault_romm_db_password }}"
     mounts:
-      - source: "{{ docker_data_dir }}/romm_config/mariadb"
+      - source: "{{ docker_data_dir }}/romm_data/mariadb"
         target: '/config'
         type: 'bind'
     networks:
@@ -72,16 +79,15 @@
         constraints:
         - 'node.platform.os == linux'
         - 'node.labels.bigmem == true'
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 30s
+      interval: 10s
+      timeout: 5s
+      retries: 5
   tags:
     - romm
     - db
-
-- name: 'Remove Romm'
-  community.docker.docker_swarm_service:
-    name: 'romm'
-    state: absent
-  tags:
-    - romm
 
 - name: 'Deploy Romm'
   community.docker.docker_swarm_service:
@@ -99,6 +105,8 @@
       - RETROACHIEVEMENTS_API_KEY="{{ vault_romm_retroachievements_api }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#retroachievements
       - STEAMGRIDDB_API_KEY="{{ vault_romm_steamgriddb_api }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#steamgriddb
       - HASHEOUS_API_ENABLED=true # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#hasheous
+      - SCAN_WORKERS=4 
+      - WEB_SERVER_CONCURRENCY=4
     mounts:
       - source: "{{ docker_data_dir }}/romm_data/resources"
         target: '/romm/resources'
@@ -129,5 +137,16 @@
     replicas: 1
     restart_config:
       condition: "{{ restart_condition }}"
+  tags:
+    - romm
+
+- name: Correct mariadb config for log_bin_trust_function_creators
+  community.general.ini_file:
+    path: "{{ docker_data_dir }}/romm_data/mariadb/custom.cnf"
+    section: mysqld
+    option: log_bin_trust_function_creators
+    value: 1
+    mode: '0600'
+    backup: true
   tags:
     - romm
