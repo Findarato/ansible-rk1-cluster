@@ -90,8 +90,22 @@ docker_volume_backup_directory: /mnt/nfs/backup/docker_volume_backup
 prometheus_release: 'v3.7.3'
 prometheus_app_name: prometheus
 
+# Node exporter (infrastructure.yml). Mirrors the role defaults, but also
+# excludes per-user runtime mounts from the filesystem collector: node-exp
+# cannot statfs /run/user/<uid> (mode 0700), which otherwise reports a false
+# "Mount errors" value on the dashboard. Keep the binary's default exclusions.
+node_exporter_enabled_collectors:
+  - systemd
+  - textfile:
+      directory: "{{ node_exporter_textfile_dir }}"
+  - filesystem:
+      mount-points-exclude: "^/(dev|proc|run/user/.+|run/credentials/.+|sys|var/lib/docker/.+|var/lib/containers/storage/.+)($|/)"
+
 # Cadvisor
-cadvisor_release: 'v0.35.0'
+cadvisor_release: 'v0.60.6'
+
+# Smartctl exporter (drive health / SMART)
+smartctl_exporter_release: 'v0.15.0'
 
 #grafana
 grafana_release: 'latest'                           # What version of the container to use

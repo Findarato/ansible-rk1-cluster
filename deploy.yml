@@ -147,6 +147,18 @@
     - role: setup
       tags: [setup, packages]
 
+- name: Deploy node exporters outside Docker Swarm
+  hosts: all
+  gather_facts: true
+  user: ubuntu
+  become: true
+  tasks:
+    - name: Setup smartctl-exporter
+      ansible.builtin.include_tasks: tasks/smartctl-exporter.yml
+      tags: [prometheus, smartctl]
+  vars_files:
+    - main.yml
+
 - name: Deploy Docker Swarm Services
   hosts: rk1_main
   gather_facts: true
@@ -213,20 +225,6 @@
     #   ansible.builtin.include_tasks: tasks/arr/no-arr.yml
     #   tags: [no_arr]
 
-    - name: Add telegraf user to Docker Group
-      ansible.builtin.user:
-        name: telegraf
-        groups: docker
-        append: true
-      notify:
-        - Restart telegraf
-
-      tags: [telegraf]
-    - name: Add ubuntu user to Docker Group
-      ansible.builtin.user:
-        name: ubuntu
-        groups: docker
-        append: true
   roles:
     - role: geerlingguy.pip
       tags: [python, pip]

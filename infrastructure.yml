@@ -36,6 +36,24 @@
       ansible.builtin.debug: msg="{{ slurped_key['content'] | b64decode }}"
   tasks:
 
+    - name: Remove telegraf
+      ansible.builtin.apt:
+        name: telegraf
+        state: absent
+        purge: yes
+        update_cache: no
+      tags: [prometheus, node_exporter]
+
+    - name: Remove prometheus-node-exporter
+      ansible.builtin.apt:
+        name: prometheus-node-exporter
+        state: absent
+        purge: yes
+        update_cache: no
+      tags: [prometheus, node_exporter]
+
+
+
     # - name: Fix systemd resolved
     #   ansible.builtin.copy:
     #     src: resolved.conf
@@ -115,8 +133,10 @@
     #       - ubuntu
     # - role: geerlingguy.docker
     #   tags: [docker, install]
-    - role: setup
-      tags: [setup]
+    # - role: setup
+    #   tags: [setup]
+    - role: prometheus.prometheus.node_exporter
+      tags: [prometheus, node_exporter]
     - role: update
       throttle: 1
       tags: [apt,update]

@@ -7,8 +7,10 @@ roles:
   - name: geerlingguy.docker
     version: "7.0.1"
   - name: geerlingguy.pip
+  
   # - name: acimadamore.raspberry_pi
 
 collections:
   - name: community.docker
   - name: community.general
+  - name: prometheus.prometheus

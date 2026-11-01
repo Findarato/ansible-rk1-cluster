@@ -77,3 +77,47 @@ scrape_configs:
       - targets: ["10.1.1.31:9100","10.1.1.32:9100","10.1.1.33:9100","10.1.1.34:9100"]
         labels:
           sbc: "true"
+
+  # Container metrics. cadvisor runs as a global Swarm service on the
+  # traefik_proxy overlay network (see tasks/prometheus.yml), so discover its
+  # tasks through the Docker socket and scrape each one on port 8080.
+  - job_name: 'cadvisor'
+    scheme: http
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    metrics_path: /metrics
+    dockerswarm_sd_configs:
+      - host: unix:///var/run/docker.sock
+        role: tasks
+        port: 8080
+    relabel_configs:
+      - source_labels: [__meta_dockerswarm_service_name]
+        regex: cadvisor
+        action: keep
+      - source_labels: [__meta_dockerswarm_task_desired_state]
+        regex: running
+        action: keep
+      - source_labels: [__meta_dockerswarm_node_hostname]
+        target_label: host
+
+  # Drive health. smartctl-exporter runs as a standalone privileged container
+  # on each node (not a Swarm service), so scrape the node IPs directly. Its
+  # default collection interval is 60s.
+  - job_name: 'smartctl'
+    scheme: http
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["10.1.1.31:9633"]
+        labels:
+          host: "rk1-cluster01"
+      - targets: ["10.1.1.32:9633"]
+        labels:
+          host: "rk1-cluster02"
+      - targets: ["10.1.1.33:9633"]
+        labels:
+          host: "rk1-cluster03"
+      - targets: ["10.1.1.34:9633"]
+        labels:
+          host: "rk1-cluster04"

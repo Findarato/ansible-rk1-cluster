@@ -1,11 +1,11 @@
 ---
 
-## Title: ~/Documents/src/Ansible/ansible-rk1-cluster/tasks/grafana.yml
-## Description: All tasks to deploy and manage Grafana in Docker Swarm
+## Title: ansible-rk1-cluster/tasks/prometheus.yml
+## Description: Deploy prometheus and required stuff
 ## Author: Joseph Harry <findarato@gmail.com>
 ## Copyright: Joseph Harry <findarato@gmail.com>
-## Date: 2025-10-12 17:01:15
-## 
+## Date: 2026-11-01 12:56:28
+##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published by
 ## the Free Software Foundation; either version 2 of the License, or
@@ -17,7 +17,6 @@
 ## You should have received a copy of the GNU General Public License along
 ## with this program; if not, write to the Free Software Foundation, Inc.
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
 
 - name: 'Create network'
   community.docker.docker_network:
@@ -66,6 +65,9 @@
     name: 'prometheus'
     image: "quay.io/prometheus/prometheus:{{ prometheus_release }}"
     hostname: prometheus
+    # The image runs as nobody, but cAdvisor discovery needs to read the
+    # root-owned Docker socket (root:docker 0660) mounted below.
+    user: 'root'
     force_update: true
     env:
       - "TZ=America/Chicago"
@@ -75,6 +77,10 @@
         type: 'bind'
       - source: "{{ docker_data_dir }}/prometheus-config/prometheus.yml"
         target: '/etc/prometheus/prometheus.yml'
+        readonly: true
+        type: 'bind'
+      - source: '/var/run/docker.sock'
+        target: '/var/run/docker.sock'
         readonly: true
         type: 'bind'
       - source: '/etc/localtime'
@@ -106,16 +112,14 @@
 - name: 'Deploy cadvisor'
   community.docker.docker_swarm_service:
     name: 'cadvisor'
-    image: "gcr.io/cadvisor/cadvisor:{{ cadvisor_release }}"
+    image: "ghcr.io/google/cadvisor:{{ cadvisor_release }}"
     hostname: cadvisor
-    # state: absent
+    args:
+      - '-docker_only'
     force_update: true
     env:
       - "TZ=America/Chicago"
     mounts:
-      - source: "{{ docker_data_dir }}/prometheus-data/"
-        target: '/prometheus'
-        type: 'bind'
       - source: '/var/run/docker.sock'
         target: '/var/run/docker.sock'
         type: 'bind'
@@ -144,31 +148,24 @@
         type: 'tmpfs'
     networks:
       - traefik_proxy
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.prometheus.rule: Host(`{{ prometheus_app_name }}.{{ traefik_domain_rk1 }}`)
-      traefik.http.routers.prometheus.tls: "true"
-      traefik.http.routers.prometheus.entrypoints: websecure
-      traefik.http.services.prometheus.loadbalancer.server.port: "9090"
-      traefik.http.routers.prometheus.tls.certresolver: "cloudflare"
     mode: 'global'
-    # replicas: 0
     restart_config:
       condition: "{{ restart_condition }}"
     placement:
       constraints:
         - 'node.platform.os == linux'
-        - 'node.platform.arch == x86_64'
   no_log: "{{ not docker_service_debug }}"
   tags:
     - prometheus
 
 
-# docker service create --name cadvisor -l prometheus-job=cadvisor
-#     --mode=global --publish published=8080,target=8080,mode=host
-#     --mount type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock,ro
-#     --mount type=bind,src=/,dst=/rootfs,ro
-#     --mount type=bind,src=/var/run,dst=/var/run
-#     --mount type=bind,src=/sys,dst=/sys,ro
-#     --mount type=bind,src=/var/lib/docker,dst=/var/lib/docker,ro
-#     google/cadvisor -docker_only
+# smartctl-exporter runs as a standalone privileged container on every node
+# (tasks/smartctl-exporter.yml) because a Swarm service cannot be granted the
+# device access smartctl needs. Remove the old Swarm service if it exists.
+- name: 'Remove smartctl-exporter Swarm service'
+  community.docker.docker_swarm_service:
+    name: 'smartctl-exporter'
+    state: absent
+  tags:
+    - prometheus
+    - smartctl
