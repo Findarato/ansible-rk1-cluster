@@ -23,6 +23,7 @@
     dest: "{{ docker_data_dir }}/pollution-config/config.json"
     owner: 'root'
     group: 'root'
+    mode: '0644'
 
 - name: 'Deploy pollution Generator'
   community.docker.docker_swarm_service:

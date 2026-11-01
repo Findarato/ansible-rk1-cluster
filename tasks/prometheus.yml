@@ -1,7 +1,7 @@
 ---
 
 ## Title: ansible-rk1-cluster/tasks/prometheus.yml
-## Description: Deploy prometheus and required stuff
+## Description: Ansible Task to  deploy prometheus and cadvisor to the cluster
 ## Author: Joseph Harry <findarato@gmail.com>
 ## Copyright: Joseph Harry <findarato@gmail.com>
 ## Date: 2026-11-01 12:56:28
@@ -17,6 +17,7 @@
 ## You should have received a copy of the GNU General Public License along
 ## with this program; if not, write to the Free Software Foundation, Inc.
 ## 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
 
 - name: 'Create network'
   community.docker.docker_network:
@@ -35,7 +36,6 @@
   loop:
     - 'prometheus-data'
     - 'prometheus-config'
-
   loop_control:
     loop_var: 'dir'
   tags:
@@ -51,7 +51,7 @@
     - stop_all_services
 
 - name: Copy configuration file
-  template:
+  ansible.builtin.template:
     src: prometheus/prometheus.yml.j2
     dest: "{{ docker_data_dir }}/prometheus-config/prometheus.yml"
     mode: '0644'

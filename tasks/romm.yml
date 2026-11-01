@@ -76,7 +76,7 @@
     restart_config:
       condition: "{{ restart_condition }}"
     placement:
-        constraints:
+      constraints:
         - 'node.platform.os == linux'
         - 'node.labels.bigmem == true'
     healthcheck:
@@ -105,7 +105,7 @@
       - RETROACHIEVEMENTS_API_KEY="{{ vault_romm_retroachievements_api }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#retroachievements
       - STEAMGRIDDB_API_KEY="{{ vault_romm_steamgriddb_api }}" # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#steamgriddb
       - HASHEOUS_API_ENABLED=true # https://docs.romm.app/latest/Getting-Started/Metadata-Providers/#hasheous
-      - SCAN_WORKERS=4 
+      - SCAN_WORKERS=4
       - WEB_SERVER_CONCURRENCY=4
     mounts:
       - source: "{{ docker_data_dir }}/romm_data/resources"

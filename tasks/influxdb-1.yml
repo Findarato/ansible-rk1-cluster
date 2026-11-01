@@ -56,8 +56,8 @@
       - "PUID=1000"
       - "PGID=1000"
       - "TZ=America/Chicago"
-      - "SHARED_SECRET=password" #optional
-      - "CACHE_DIR=/tmp" #optional
+      - "SHARED_SECRET=password" # optional
+      - "CACHE_DIR=/tmp" # optional
     mounts:
       - source: "{{ docker_data_dir }}/influxdb-config"
         target: '/config'

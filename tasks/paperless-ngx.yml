@@ -46,7 +46,6 @@
     - paperless_ngx
     - paperless_web
 
-
 - name: 'Remove paperless_ngx-db'
   community.docker.docker_swarm_service:
     name: 'paperless_ngx-db'
@@ -96,7 +95,7 @@
     restart_config:
       condition: "{{ restart_condition }}"
     placement:
-        constraints:
+      constraints:
         - 'node.platform.os == linux'
         - 'node.labels.bigmem == true'
   tags:
@@ -159,7 +158,7 @@
     restart_config:
       condition: "{{ restart_condition }}"
     placement:
-        constraints:
+      constraints:
         - 'node.platform.os == linux'
         - 'node.labels.bigmem == true'
   tags:
@@ -290,7 +289,7 @@
 #   tags:
 #     - paperless
 #     - paperless_ngx
-    - paperless_web
+#    - paperless_web
 
 
     # healthcheck:
